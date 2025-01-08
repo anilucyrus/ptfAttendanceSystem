@@ -181,6 +181,30 @@ public class UserRegistrationController {
         return new ResponseEntity<>(null,HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @DeleteMapping("/leave-request/{leaveRequestId}")
+    public ResponseEntity<String> deleteLeaveRequest(@PathVariable Long leaveRequestId) {
+        try {
+            boolean isDeleted = usersService.deleteLeaveRequest(leaveRequestId);
+            if (isDeleted) {
+                return new ResponseEntity<>("Leave request deleted successfully", HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("Leave request not found", HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Error occurred while deleting leave request", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/leave-request/{leaveId}")
+    public ResponseEntity<?> updateLeaveRequest(@PathVariable Long leaveId, @RequestBody LeaveRequestDto leaveRequestDto) {
+        try {
+            return usersService.updateLeaveRequest(leaveId, leaveRequestDto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Unable to update leave request", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     @GetMapping("/leave-requests/{userId}")
     public ResponseEntity<?> getLeaveRequests(@PathVariable Long userId) {

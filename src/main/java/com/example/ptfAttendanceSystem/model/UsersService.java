@@ -351,6 +351,47 @@ public class UsersService {
         }return new ResponseEntity<>(null,HttpStatus.NOT_FOUND);
     }
 
+    public boolean deleteLeaveRequest(Long leaveRequestId) {
+        Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);
+        if (leaveRequestOptional.isPresent()) {
+            leaveRequestRepository.deleteById(leaveRequestId);
+            return true;
+        }
+        return false;
+    }
+
+
+    public ResponseEntity<LeaveResponseDto> updateLeaveRequest(Long leaveId, LeaveRequestDto leaveRequestDto) {
+        Optional<LeaveRequestModel> leaveOptional = leaveRequestRepository.findById(leaveId);
+        if (leaveOptional.isPresent()) {
+            LeaveRequestModel leaveRequestModel = leaveOptional.get();
+            leaveRequestModel.setLeaveType(leaveRequestDto.getLeaveType());
+            leaveRequestModel.setReason(leaveRequestDto.getReason());
+            leaveRequestModel.setFromDate(leaveRequestDto.getFromDate());
+            leaveRequestModel.setToDate(leaveRequestDto.getToDate());
+            leaveRequestModel.setNumberOfDays(leaveRequestDto.getNumberOfDays());
+            leaveRequestRepository.save(leaveRequestModel);
+
+            LeaveResponseDto leaveResponseDto = mapToResponseDto(usersRepository.findById(leaveRequestModel.getUserId()).get(), leaveRequestModel);
+            return new ResponseEntity<>(leaveResponseDto, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+    }
+
+    private LeaveResponseDto mapToResponseDto(UsersModel usersModel, LeaveRequestModel leaveRequestModel) {
+        LeaveResponseDto leaveResponseDto = new LeaveResponseDto();
+        leaveResponseDto.setBatch(usersModel.getBatch());
+        leaveResponseDto.setLeaveType(leaveRequestModel.getLeaveType());
+        leaveResponseDto.setUserId(leaveRequestModel.getUserId());
+        leaveResponseDto.setReason(leaveRequestModel.getReason());
+        leaveResponseDto.setUserName(usersModel.getName());
+        leaveResponseDto.setFromDate(leaveRequestModel.getFromDate());
+        leaveResponseDto.setToDate(leaveRequestModel.getToDate());
+        leaveResponseDto.setStatus(leaveRequestModel.getStatus());
+        leaveResponseDto.setNumberOfDays(leaveRequestModel.getNumberOfDays());
+        return leaveResponseDto;
+    }
+
 
     public List<LeaveRequestModel> getLeaveRequestsByUserId(Long userId) {
         return leaveRequestRepository.findByUserId(userId); // Ensure this method is defined in the repository

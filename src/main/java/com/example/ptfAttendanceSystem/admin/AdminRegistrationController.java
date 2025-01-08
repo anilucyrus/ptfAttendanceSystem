@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -477,5 +478,46 @@ public class AdminRegistrationController {
         }
     }
 
+    // New method to get a user's attendance for a particular month
+    @GetMapping("/attendance/user/{userId}/month/{month}")
+    public ResponseEntity<?> getUserAttendanceForMonth(@PathVariable Long userId, @PathVariable String month) {
+        try {
+            // Parse the month from the path (e.g., "2025-01")
+            LocalDate startOfMonth = LocalDate.parse(month + "-01"); // Start of the month
+            LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth()); // End of the month
 
+            List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
+
+            if (userAttendance.isEmpty()) {
+                return new ResponseEntity<>("No attendance records found for this user in the specified month", HttpStatus.NOT_FOUND);
+            }
+
+            return new ResponseEntity<>(userAttendance, HttpStatus.OK);
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid month format. Please use yyyy-MM format.", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // New method to get a user's attendance between two specific dates
+    @GetMapping("/attendance/user/{userId}/from/{startDate}/to/{endDate}")
+    public ResponseEntity<?> getUserAttendanceBetweenDates(@PathVariable Long userId, @PathVariable String startDate, @PathVariable String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+
+            if (end.isBefore(start)) {
+                return new ResponseEntity<>("End date must be after start date.", HttpStatus.BAD_REQUEST);
+            }
+
+            List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, start, end);
+
+            if (userAttendance.isEmpty()) {
+                return new ResponseEntity<>("No attendance records found for this user in the specified date range", HttpStatus.NOT_FOUND);
+            }
+
+            return new ResponseEntity<>(userAttendance, HttpStatus.OK);
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd format.", HttpStatus.BAD_REQUEST);
+        }
+    }
 }
