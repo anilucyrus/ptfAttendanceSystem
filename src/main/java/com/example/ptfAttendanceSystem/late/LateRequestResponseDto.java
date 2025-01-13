@@ -14,14 +14,16 @@ public class LateRequestResponseDto {
     private String batch;
     private String reason;
     private LocalDate date;
+    private String status;
 
-    public LateRequestResponseDto(Long userId, String name, String email, String batch, String reason, LocalDate date) {
+    public LateRequestResponseDto(Long userId, String name, String email, String batch, String reason, LocalDate date, String status) {
         this.userId = userId;
         this.name = name;
         this.email = email;
         this.batch = batch;
         this.reason = reason;
         this.date = date;
+        this.status = status;
     }
 
     public Long getUserId() {
@@ -70,5 +72,13 @@ public class LateRequestResponseDto {
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
