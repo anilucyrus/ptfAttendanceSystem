@@ -6,10 +6,7 @@ import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
-import com.example.ptfAttendanceSystem.leave.LeaveRequestDto;
-import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
-import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
-import com.example.ptfAttendanceSystem.leave.LeaveRequestStatus;
+import com.example.ptfAttendanceSystem.leave.*;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -291,106 +288,6 @@ public class UsersService {
 
 
 
-//    // Create leave request with date validation
-//    public ResponseEntity<?> createLeaveRequest(LeaveRequestDto leaveRequestDto, Long userId) {
-//        LocalDate currentDate = LocalDate.now();
-//
-//        // Validate that the fromDate is today or a future date
-//        if (leaveRequestDto.getFromDate().isBefore(currentDate)) {
-//            return new ResponseEntity<>("Leave request cannot be made for past dates.", HttpStatus.BAD_REQUEST);
-//        }
-//
-//        // Create and populate the leave request
-//        LeaveRequestModel leaveRequest = new LeaveRequestModel();
-//        leaveRequest.setUserId(userId);
-//        leaveRequest.setLeaveType(leaveRequestDto.getLeaveType());
-//        leaveRequest.setReason(leaveRequestDto.getReason());
-//        leaveRequest.setFromDate(leaveRequestDto.getFromDate());
-//        leaveRequest.setToDate(leaveRequestDto.getToDate());
-//        leaveRequest.setNumberOfDays(leaveRequestDto.getNumberOfDays());
-//
-//        // Set the default status to PENDING
-//        leaveRequest.setStatus(LeaveRequestStatus.PENDING);
-//
-//        // Save the leave request to the repository
-//        LeaveRequestModel savedRequest = leaveRequestRepository.save(leaveRequest);
-//
-//        // Return the created leave request
-//        return new ResponseEntity<>(savedRequest, HttpStatus.CREATED);
-//    }
-
-
-
-    public ResponseEntity<LeaveResponseDto> leaveRequestMethod(Long userId, LeaveRequestDto leaveRequestDto) {
-        Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
-        if (usersModelOptional.isPresent()){
-            UsersModel usersModel = usersModelOptional.get();
-            LeaveRequestModel leaveRequestModel = new LeaveRequestModel();
-            leaveRequestModel.setLeaveType(leaveRequestDto.getLeaveType());
-            leaveRequestModel.setUserId(userId);
-            leaveRequestModel.setReason(leaveRequestDto.getReason());
-            leaveRequestModel.setStatus(LeaveRequestStatus.PENDING);
-            leaveRequestModel.setFromDate(leaveRequestDto.getFromDate());
-            leaveRequestModel.setToDate(leaveRequestDto.getToDate());
-            leaveRequestModel.setNumberOfDays(leaveRequestDto.getNumberOfDays());
-            leaveRequestModel.setName(usersModel.getName());
-            leaveRequestModel.setBatch(usersModel.getBatch());
-            leaveRequestRepository.save(leaveRequestModel);
-            LeaveResponseDto leaveResponseDto = new LeaveResponseDto();
-            leaveResponseDto.setBatch(usersModel.getBatch());
-            leaveResponseDto.setLeaveType(leaveRequestModel.getLeaveType());
-            leaveResponseDto.setUserId(userId);
-            leaveResponseDto.setReason(leaveRequestModel.getReason());
-            leaveResponseDto.setUserName(usersModel.getName());
-            leaveResponseDto.setFromDate(leaveRequestModel.getFromDate());
-            leaveResponseDto.setToDate(leaveRequestModel.getToDate());
-            leaveResponseDto.setStatus(leaveRequestModel.getStatus());
-            leaveResponseDto.setNumberOfDays(leaveRequestModel.getNumberOfDays());
-            return new ResponseEntity<>(leaveResponseDto,HttpStatus.OK);
-
-        }return new ResponseEntity<>(null,HttpStatus.NOT_FOUND);
-    }
-
-    public boolean deleteLeaveRequest(Long leaveRequestId) {
-        Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);
-        if (leaveRequestOptional.isPresent()) {
-            leaveRequestRepository.deleteById(leaveRequestId);
-            return true;
-        }
-        return false;
-    }
-
-
-    public ResponseEntity<LeaveResponseDto> updateLeaveRequest(Long leaveId, LeaveRequestDto leaveRequestDto) {
-        Optional<LeaveRequestModel> leaveOptional = leaveRequestRepository.findById(leaveId);
-        if (leaveOptional.isPresent()) {
-            LeaveRequestModel leaveRequestModel = leaveOptional.get();
-            leaveRequestModel.setLeaveType(leaveRequestDto.getLeaveType());
-            leaveRequestModel.setReason(leaveRequestDto.getReason());
-            leaveRequestModel.setFromDate(leaveRequestDto.getFromDate());
-            leaveRequestModel.setToDate(leaveRequestDto.getToDate());
-            leaveRequestModel.setNumberOfDays(leaveRequestDto.getNumberOfDays());
-            leaveRequestRepository.save(leaveRequestModel);
-
-            LeaveResponseDto leaveResponseDto = mapToResponseDto(usersRepository.findById(leaveRequestModel.getUserId()).get(), leaveRequestModel);
-            return new ResponseEntity<>(leaveResponseDto, HttpStatus.OK);
-        }
-        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-    }
-
-    private LeaveResponseDto mapToResponseDto(UsersModel usersModel, LeaveRequestModel leaveRequestModel) {
-        LeaveResponseDto leaveResponseDto = new LeaveResponseDto();
-        leaveResponseDto.setBatch(usersModel.getBatch());
-        leaveResponseDto.setLeaveType(leaveRequestModel.getLeaveType());
-        leaveResponseDto.setUserId(leaveRequestModel.getUserId());
-        leaveResponseDto.setReason(leaveRequestModel.getReason());
-        leaveResponseDto.setUserName(usersModel.getName());
-        leaveResponseDto.setFromDate(leaveRequestModel.getFromDate());
-        leaveResponseDto.setToDate(leaveRequestModel.getToDate());
-        leaveResponseDto.setStatus(leaveRequestModel.getStatus());
-        leaveResponseDto.setNumberOfDays(leaveRequestModel.getNumberOfDays());
-        return leaveResponseDto;
-    }
 
 
     public List<LeaveRequestModel> getLeaveRequestsByUserId(Long userId) {

@@ -15,7 +15,19 @@ public class LeaveResponseDto {
     private LocalDate fromDate;
     private LocalDate toDate;
     private int numberOfDays;
-    private LeaveRequestStatus status;
+    private String status;
+
+    public LeaveResponseDto(Long userId, String userName, String batch, String leaveType, String reason, LocalDate fromDate, LocalDate toDate, int numberOfDays, String status) {
+        this.userId = userId;
+        this.userName = userName;
+        this.batch = batch;
+        this.leaveType = leaveType;
+        this.reason = reason;
+        this.fromDate = fromDate;
+        this.toDate = toDate;
+        this.numberOfDays = numberOfDays;
+        this.status = status;
+    }
 
     public Long getUserId() {
         return userId;
@@ -81,11 +93,11 @@ public class LeaveResponseDto {
         this.numberOfDays = numberOfDays;
     }
 
-    public LeaveRequestStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(LeaveRequestStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 }

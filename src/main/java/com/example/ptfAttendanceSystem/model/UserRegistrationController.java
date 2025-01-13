@@ -4,8 +4,7 @@ package com.example.ptfAttendanceSystem.model;
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.*;
-import com.example.ptfAttendanceSystem.leave.LeaveRequestDto;
-import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
+import com.example.ptfAttendanceSystem.leave.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Period;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +36,9 @@ public class UserRegistrationController {
 
     @Autowired
     private AttendanceRepository attendanceRepository;
+
+    @Autowired
+    private LeaveRequestRepository leaveRequestRepository;
 
     private int scanCount = 0;
     private String currentUUID = UUID.randomUUID().toString();
@@ -163,46 +166,149 @@ public class UserRegistrationController {
     }
 
     @PostMapping("/leave-request/{userId}")
-//    public ResponseEntity<?> requestLeave(@PathVariable Long userId, @RequestBody LeaveRequestDto leaveRequestDto) {
-//        try {
-//            return usersService.createLeaveRequest(leaveRequestDto, userId);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
-    public ResponseEntity<LeaveResponseDto> leaveRequestMethod(@PathVariable Long userId,@RequestBody LeaveRequestDto leaveRequestDto){
+    public ResponseEntity<?> requestLeave(@PathVariable Long userId, @RequestBody LeaveRequestDto leaveRequestDto) {
         try {
-            return usersService.leaveRequestMethod(userId,leaveRequestDto);
-        }catch (Exception e){
+            // Step 1: Validate the leave request date to avoid past dates
+            LocalDate currentDate = LocalDate.now();
+            if (leaveRequestDto.getFromDate().isBefore(currentDate) || leaveRequestDto.getToDate().isBefore(currentDate)) {
+                return new ResponseEntity<>("Leave request cannot be made for past dates", HttpStatus.BAD_REQUEST);
+            }
+
+            // Step 2: Find the user by userId
+            Optional<UsersModel> user = usersService.getUserById(userId);
+            if (user.isEmpty()) {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
+            UsersModel userModel = user.get();
+
+            // Step 3: Validate leave dates (fromDate and toDate)
+            if (leaveRequestDto.getFromDate().isAfter(leaveRequestDto.getToDate())) {
+                return new ResponseEntity<>("From date cannot be after To date", HttpStatus.BAD_REQUEST);
+            }
+
+            // Step 4: Create a new LeaveRequestModel
+            LeaveRequestModel leaveRequest = new LeaveRequestModel();
+            leaveRequest.setUserId(userModel.getUserId());
+            leaveRequest.setLeaveType(leaveRequestDto.getLeaveType());
+            leaveRequest.setReason(leaveRequestDto.getReason());
+            leaveRequest.setFromDate(leaveRequestDto.getFromDate());
+            leaveRequest.setToDate(leaveRequestDto.getToDate());
+            leaveRequest.setNumberOfDays(Period.between(leaveRequestDto.getFromDate(), leaveRequestDto.getToDate()).getDays() + 1);
+            leaveRequest.setStatus(LeaveRequestStatus.PENDING);  // Default status is PENDING
+            leaveRequest.setName(userModel.getName());
+            leaveRequest.setBatch(userModel.getBatch());
+
+            // Step 5: Save the leave request
+            leaveRequestRepository.save(leaveRequest);
+
+            // Step 6: Prepare response DTO
+            LeaveRequestResponseDto responseDto = new LeaveRequestResponseDto(
+                    leaveRequest.getId(),
+                    leaveRequest.getUserId(),
+                    leaveRequest.getName(),
+                    leaveRequest.getBatch(),
+                    leaveRequest.getLeaveType(),
+                    leaveRequest.getReason(),
+                    leaveRequest.getFromDate(),
+                    leaveRequest.getToDate(),
+                    leaveRequest.getNumberOfDays(),
+                    leaveRequest.getStatus()
+            );
+
+            return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
+
+        } catch (Exception e) {
             e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(null,HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @DeleteMapping("/leave-request/{leaveRequestId}")
-    public ResponseEntity<String> deleteLeaveRequest(@PathVariable Long leaveRequestId) {
+
+
+
+    @PutMapping("/leave-request/{requestId}")
+    public ResponseEntity<?> updateLeaveRequest(@PathVariable Long requestId, @RequestBody LeaveRequestDto leaveRequestDto) {
         try {
-            boolean isDeleted = usersService.deleteLeaveRequest(leaveRequestId);
-            if (isDeleted) {
-                return new ResponseEntity<>("Leave request deleted successfully", HttpStatus.OK);
-            } else {
+            // Check for past dates
+            LocalDate currentDate = LocalDate.now();
+            if (leaveRequestDto.getFromDate().isBefore(currentDate) || leaveRequestDto.getToDate().isBefore(currentDate)) {
+                return new ResponseEntity<>("Leave request cannot be made for past dates", HttpStatus.BAD_REQUEST);
+            }
+
+            // Find the existing leave request by requestId
+            Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(requestId);
+            if (leaveRequestOptional.isEmpty()) {
                 return new ResponseEntity<>("Leave request not found", HttpStatus.NOT_FOUND);
             }
+
+            LeaveRequestModel leaveRequest = leaveRequestOptional.get();
+
+            if (leaveRequestDto.getFromDate().isAfter(leaveRequestDto.getToDate())) {
+                return new ResponseEntity<>("From date cannot be after To date", HttpStatus.BAD_REQUEST);
+            }
+
+            // Update the leave request details
+            leaveRequest.setLeaveType(leaveRequestDto.getLeaveType());
+            leaveRequest.setReason(leaveRequestDto.getReason());
+            leaveRequest.setFromDate(leaveRequestDto.getFromDate());
+            leaveRequest.setToDate(leaveRequestDto.getToDate());
+            leaveRequest.setNumberOfDays(Period.between(leaveRequestDto.getFromDate(), leaveRequestDto.getToDate()).getDays() + 1);
+            leaveRequest.setStatus(LeaveRequestStatus.PENDING); // Set status as PENDING after the update
+
+            // Save the updated leave request to the repository
+            leaveRequestRepository.save(leaveRequest);
+
+            // Fetch user details (name and batch) from UsersModel based on userId
+            Optional<UsersModel> userOptional = usersService.getUserById(leaveRequest.getUserId());
+            if (userOptional.isEmpty()) {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
+
+            UsersModel userModel = userOptional.get();
+
+            // Create the response DTO with the updated leave request and user details
+            LeaveRequestResponseDto responseDto = new LeaveRequestResponseDto(
+                    leaveRequest.getId(),
+                    leaveRequest.getUserId(),
+                    userModel.getName(), // Fetch name from UsersModel
+                    userModel.getBatch(), // Fetch batch from UsersModel
+                    leaveRequest.getLeaveType(),
+                    leaveRequest.getReason(),
+                    leaveRequest.getFromDate(),
+                    leaveRequest.getToDate(),
+                    leaveRequest.getNumberOfDays(),
+                    leaveRequest.getStatus()
+            );
+
+            // Return the updated leave request details along with the user information
+            return new ResponseEntity<>(responseDto, HttpStatus.OK);
+
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>("Error occurred while deleting leave request", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PutMapping("/leave-request/{leaveId}")
-    public ResponseEntity<?> updateLeaveRequest(@PathVariable Long leaveId, @RequestBody LeaveRequestDto leaveRequestDto) {
+
+    @DeleteMapping("/leave-request/{requestId}")
+    public ResponseEntity<String> deleteLeaveRequest(@PathVariable Long requestId) {
         try {
-            return usersService.updateLeaveRequest(leaveId, leaveRequestDto);
+            // Step 1: Find the leave request by its ID
+            Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(requestId);
+            if (leaveRequestOptional.isEmpty()) {
+                return new ResponseEntity<>("Leave request not found", HttpStatus.NOT_FOUND);
+            }
+
+            LeaveRequestModel leaveRequest = leaveRequestOptional.get();
+
+            leaveRequestRepository.delete(leaveRequest);
+
+            // Step 4: Return success message
+            return new ResponseEntity<>("Leave request deleted successfully", HttpStatus.OK);
+
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>("Unable to update leave request", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("Error occurred while deleting the leave request", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
