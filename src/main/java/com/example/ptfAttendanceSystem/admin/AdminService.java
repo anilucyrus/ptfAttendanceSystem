@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,11 +79,22 @@ public class AdminService {
     }
 
 
-    public void handleScan(String userId) {
-        // Logic for handling the scan
-        String newToken = UUID.randomUUID().toString();  // Regenerate the token for each scan
-        System.out.println("New Token Generated: " + newToken);
-    }
+
+//    15/1/25
+public void handleScan(String userId) {
+    // Logic for handling the scan
+    String newToken = UUID.randomUUID().toString(); // Regenerate the token for each scan
+    qrCodeService.setStatusFlag(1); // Update the status flag to indicate QR has been scanned
+    System.out.println("New Token Generated: " + newToken);
+}
+
+//
+//    public void handleScan(String userId) {
+//        // Logic for handling the scan
+//        String newToken = UUID.randomUUID().toString();  // Regenerate the token for each scan
+//        System.out.println("New Token Generated: " + newToken);
+//    }
+
     // Regenerate QR Code after scan
 //        qrCodeService.regenerateQRCode();  // This will regenerate QR code every time a scan happens
 //    }

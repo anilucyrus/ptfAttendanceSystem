@@ -5,6 +5,7 @@ import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.*;
 import com.example.ptfAttendanceSystem.leave.*;
+import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,9 @@ public class UserRegistrationController {
 
     @Autowired
     private LeaveRequestRepository leaveRequestRepository;
+
+    @Autowired
+    private QRCodeService qrCodeService;
 
     private int scanCount = 0;
     private String currentUUID = UUID.randomUUID().toString();
@@ -88,19 +92,49 @@ public class UserRegistrationController {
     }
 
 
-//    @PostMapping(path="/inScanQR")
-//    public ResponseEntity<?> scanInAndOut(@RequestParam Long userId,@RequestBody InScanDto inScanDto){
+//    @PostMapping(path = "/inScanQR")
+//    public ResponseEntity<?> scanIn(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
 //        try {
-//            return usersService.scanInAndOut(userId,inScanDto);
-//        }catch (Exception e){
+//            return usersService.scanInAndOut(userId, inScanDto);
+//        } catch (Exception e) {
 //            e.printStackTrace();
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
 //        }
-//        return new ResponseEntity<>("Something went wrong",HttpStatus.INTERNAL_SERVER_ERROR);
+//    }
+//
+//
+//
+//    @PostMapping(path = "/outScanQR")
+//    public ResponseEntity<?> handleScanOut(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
+//        try {
+//            return usersService.scanInAndOut(userId, inScanDto);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
 //    }
 
+
     @PostMapping(path = "/inScanQR")
-    public ResponseEntity<?> scanInAndOut(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
+    public ResponseEntity<?> scanIn(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
         try {
+            // Perform the scan logic
+            ResponseEntity<?> response = usersService.scanInAndOut(userId, inScanDto);
+
+            // Update the QR code flag to indicate it has been scanned
+            qrCodeService.setStatusFlag(1);
+
+            return response;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping(path = "/outScanQR")
+    public ResponseEntity<?> handleScanOut(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
+        try {
+            // Perform the scan out logic
             return usersService.scanInAndOut(userId, inScanDto);
         } catch (Exception e) {
             e.printStackTrace();
@@ -109,8 +143,8 @@ public class UserRegistrationController {
     }
 
     // Get attendance for a specific user on a particular date
-    @GetMapping("/attendance/{userId}")
-    public ResponseEntity<?> getAttendance(@PathVariable Long userId, @RequestParam("date") String date) {
+    @GetMapping("/attendance")
+    public ResponseEntity<?> getAttendance(@RequestParam Long userId, @RequestParam("date") String date) {
         LocalDate attendanceDate = LocalDate.parse(date);
         Optional<Attendance> attendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, attendanceDate);
 
@@ -165,8 +199,8 @@ public class UserRegistrationController {
         return new ResponseEntity<>(attendanceList, HttpStatus.OK);
     }
 
-    @PostMapping("/leave-request/{userId}")
-    public ResponseEntity<?> requestLeave(@PathVariable Long userId, @RequestBody LeaveRequestDto leaveRequestDto) {
+    @PostMapping("/leave-request")
+    public ResponseEntity<?> requestLeave(@RequestParam Long userId, @RequestBody LeaveRequestDto leaveRequestDto) {
         try {
             // Step 1: Validate the leave request date to avoid past dates
             LocalDate currentDate = LocalDate.now();
@@ -226,8 +260,8 @@ public class UserRegistrationController {
 
 
 
-    @PutMapping("/leave-request/{requestId}")
-    public ResponseEntity<?> updateLeaveRequest(@PathVariable Long requestId, @RequestBody LeaveRequestDto leaveRequestDto) {
+    @PutMapping("/leave-request")
+    public ResponseEntity<?> updateLeaveRequest(@RequestParam Long requestId, @RequestBody LeaveRequestDto leaveRequestDto) {
         try {
             // Check for past dates
             LocalDate currentDate = LocalDate.now();
@@ -290,8 +324,8 @@ public class UserRegistrationController {
     }
 
 
-    @DeleteMapping("/leave-request/{requestId}")
-    public ResponseEntity<String> deleteLeaveRequest(@PathVariable Long requestId) {
+    @DeleteMapping("/leave-request")
+    public ResponseEntity<String> deleteLeaveRequest(@RequestParam Long requestId) {
         try {
             // Step 1: Find the leave request by its ID
             Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(requestId);
@@ -312,8 +346,8 @@ public class UserRegistrationController {
         }
     }
 
-    @GetMapping("/leave-requests/{userId}")
-    public ResponseEntity<?> getLeaveRequests(@PathVariable Long userId) {
+    @GetMapping("/leave-requests")
+    public ResponseEntity<?> getLeaveRequests(@RequestParam Long userId) {
         try {
             List<LeaveRequestModel> requests = usersService.getLeaveRequestsByUserId(userId);
             if (requests.isEmpty()) {
@@ -326,8 +360,8 @@ public class UserRegistrationController {
         }
     }
 
-    @PostMapping("/late-request/{userId}")
-    public ResponseEntity<?> requestLate(@PathVariable Long userId, @RequestBody LateRequestDto lateRequestDto) {
+    @PostMapping("/late-request")
+    public ResponseEntity<?> requestLate(@RequestParam Long userId, @RequestBody LateRequestDto lateRequestDto) {
         try {
             // Step 1: Find user by email
             Optional<UsersModel> user = usersService.findByEmail(lateRequestDto.getEmail());
@@ -344,9 +378,9 @@ public class UserRegistrationController {
             LocalTime allowedTime = null;
 
             if ("morning batch".equalsIgnoreCase(batch)) {
-                allowedTime = LocalTime.of(11, 40);  // Batch 1's time restriction is 9:30 AM
+                allowedTime = LocalTime.of(9, 40);  // Batch 1's time restriction is 9:30 AM
             } else if ("evening batch".equalsIgnoreCase(batch)) {
-                allowedTime = LocalTime.of(23, 40); // Batch 2's time restriction is 1:30 PM (13:30)
+                allowedTime = LocalTime.of(13, 40); // Batch 2's time restriction is 1:30 PM (13:30)
             } else {
                 return new ResponseEntity<>("Invalid batch", HttpStatus.BAD_REQUEST);
             }
@@ -470,8 +504,8 @@ public class UserRegistrationController {
 //    }
 
 
-    @DeleteMapping("/late-request/{id}")
-    public ResponseEntity<?> deleteLateRequest(@PathVariable Long id) {
+    @DeleteMapping("/late-request")
+    public ResponseEntity<?> deleteLateRequest(@RequestParam Long id) {
         try {
             Optional<LateRequestModel> lateRequest = lateRequestRepository.findById(id);
 
@@ -490,8 +524,8 @@ public class UserRegistrationController {
 
 
 
-    @PutMapping("/late-request/{requestId}")
-    public ResponseEntity<?> updateLateRequest(@PathVariable Long requestId, @RequestBody LateRequestDto lateRequestDto) {
+    @PutMapping("/late-request")
+    public ResponseEntity<?> updateLateRequest(@RequestParam Long requestId, @RequestBody LateRequestDto lateRequestDto) {
         try {
             // Step 1: Find the existing late request by its ID
             Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findById(requestId);
@@ -585,8 +619,8 @@ public class UserRegistrationController {
 
 
 
-    @GetMapping("/late-requests/{userId}")
-    public ResponseEntity<?> getAllLateRequestsForUser(@PathVariable Long userId) {
+    @GetMapping("/late-requests")
+    public ResponseEntity<?> getAllLateRequestsForUser(@RequestParam Long userId) {
         try {
             List<LateRequestModel> lateRequests = lateRequestRepository.findByUserId(userId);
             List<LateRequestResponseDto> responseDtos = lateRequests.stream()
@@ -658,8 +692,8 @@ public class UserRegistrationController {
 //
 
 
-    @PutMapping(path = "/updatePassword/{id}")
-    public ResponseEntity<?> updateUserPassword(@PathVariable Long id, @RequestBody UserDto userDto) {
+    @PutMapping(path = "/updatePassword")
+    public ResponseEntity<?> updateUserPassword(@RequestParam Long id, @RequestBody UserDto userDto) {
         try {
             UsersModel updatedUser = usersService.updateUserPassword(id, userDto);
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
@@ -671,8 +705,8 @@ public class UserRegistrationController {
 
 
     // New endpoint for deleting a user
-    @DeleteMapping(path = "/delete/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    @DeleteMapping(path = "/delete")
+    public ResponseEntity<?> deleteUser(@RequestParam Long id) {
         try {
             boolean isDeleted = usersService.deleteUser(id);
             if (isDeleted) {
@@ -687,8 +721,8 @@ public class UserRegistrationController {
     }
 
     // New endpoint for updating a user
-    @PutMapping(path = "/update/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserDto userDto) {
+    @PutMapping(path = "/update")
+    public ResponseEntity<?> updateUser(@RequestParam Long id, @RequestBody UserDto userDto) {
         try {
             return usersService.updateUser(id, userDto);
         } catch (Exception e) {

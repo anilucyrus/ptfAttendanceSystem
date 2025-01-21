@@ -6,6 +6,7 @@ import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
+import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.*;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,6 @@ public class UsersService {
     @Autowired
     private UsersRepository usersRepository;
 
-
     @Autowired
     private LeaveRequestRepository leaveRequestRepository;
 
@@ -37,18 +37,13 @@ public class UsersService {
     @Autowired
     private JavaMailSender mailSender;
 
-
     @Autowired
     private AttendanceRepository attendanceRepository;
 
     @Autowired
     private QRCodeService qrCodeService;
 
-
-
     @Autowired
-
-
 
     public ResponseEntity<?> userRegistration(UserDto userDto) {
         Optional<UsersModel> existingUser = usersRepository.findByEmail(userDto.getEmail());
@@ -70,8 +65,6 @@ public class UsersService {
             return new ResponseEntity<>("Email is required",HttpStatus.BAD_REQUEST);
         }
 
-
-
         URegistrationResponse responce = new URegistrationResponse(
                 savedUser.getUserId(),
                 savedUser.getName(),
@@ -91,112 +84,15 @@ public class UsersService {
 
         mailSender.send(message);
     }
-//    public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
-//        Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
-//        if (usersModelOptional.isPresent()) {
-//            UsersModel usersModel = usersModelOptional.get();
-//            String batchType = usersModel.getBatch();
-//            String typeData = inScanDto.getType();
-//            if (typeData!=null&&typeData.equalsIgnoreCase("in")) {
-//                LocalDate currentDate = LocalDate.now();
-//                if (currentDate.equals(inScanDto.getPresentDate())) {
-//                    if (batchType.equalsIgnoreCase("morning batch")) {
-//                        LocalTime allowedTime = LocalTime.of(19, 41);
-//                        if (allowedTime.isBefore(inScanDto.getPresentTime())) {
-//                            Attendance attendance = new Attendance();
-//                            attendance.setAttendanceDate(inScanDto.getPresentDate());
-//                            attendance.setUserId(userId);
-//                            attendance.setScanInTime(inScanDto.getPresentTime());
-//                            attendance.setStatus("Punctual");
-//                            attendanceRepository.save(attendance);
-//                            return new ResponseEntity<>(attendance, HttpStatus.OK);
-//
-//                        } else {
-//                            Optional<LateRequestModel> lateRequestModelOptional = lateRequestRepository.findByUserIdAndDate(userId, inScanDto.getPresentDate());
-//                            if (lateRequestModelOptional.isPresent()) {
-//                                Attendance attendance = new Attendance();
-//                                attendance.setScanInTime(inScanDto.getPresentTime());
-//                                attendance.setAttendanceDate(inScanDto.getPresentDate());
-//                                attendance.setUserId(userId);
-//                                attendance.setStatus("Punctual");
-//                                attendanceRepository.save(attendance);
-//                                return new ResponseEntity<>("Attendance marked", HttpStatus.OK);
-//                            }else {
-//                                Attendance attendance = new Attendance();
-//                                attendance.setUserId(userId);
-//                                attendance.setAttendanceDate(inScanDto.getPresentDate());
-//                                attendance.setScanInTime(inScanDto.getPresentTime());
-//                                attendance.setStatus("Late");
-//                                attendanceRepository.save(attendance);
-//                                return new ResponseEntity<>("Late Attendance Marked",HttpStatus.OK);
-//                            }
-//                        }
-//                    } else if (batchType.equalsIgnoreCase("evening batch")) {
-//                        LocalTime allowedTime = LocalTime.of(13, 41);
-//                        if (allowedTime.isBefore(inScanDto.getPresentTime())) {
-//                            Attendance attendance = new Attendance();
-//                            attendance.setScanInTime(inScanDto.getPresentTime());
-//                            attendance.setAttendanceDate(inScanDto.getPresentDate());
-//                            attendance.setUserId(userId);
-//                            attendance.setStatus("Punctual");
-//                            attendanceRepository.save(attendance);
-//                            return new ResponseEntity<>(attendance, HttpStatus.OK);
-//                        }else {
-//                            Optional<LateRequestModel> lateRequestModelOptional = lateRequestRepository.findByUserIdAndDate(userId, inScanDto.getPresentDate());
-//                            if (lateRequestModelOptional.isPresent()) {
-//                                Attendance attendance = new Attendance();
-//                                attendance.setScanInTime(inScanDto.getPresentTime());
-//                                attendance.setAttendanceDate(inScanDto.getPresentDate());
-//                                attendance.setUserId(userId);
-//                                attendance.setStatus("Punctual");
-//                                attendanceRepository.save(attendance);
-//                                return new ResponseEntity<>("Attendance marked", HttpStatus.OK);
-//                            }else {
-//                                Attendance attendance = new Attendance();
-//                                attendance.setUserId(userId);
-//                                attendance.setAttendanceDate(inScanDto.getPresentDate());
-//                                attendance.setScanInTime(inScanDto.getPresentTime());
-//                                attendance.setStatus("Late");
-//                                attendanceRepository.save(attendance);
-//                                return new ResponseEntity<>("Late Attendance Marked",HttpStatus.OK);
-//                            }
-//                        }
-//                    } else {
-//                        return new ResponseEntity<>("Batch type is n't valid", HttpStatus.NOT_FOUND);
-//                    }
-//                }return new ResponseEntity<>("Current date is not correct",HttpStatus.BAD_REQUEST);
-//            }else if (typeData!=null &&typeData.equalsIgnoreCase("out")) {
-//                LocalDate currentDate = LocalDate.now();
-//                if (currentDate.equals(inScanDto.getPresentDate())) {
-//                    Optional<Attendance> attendanceOptional = attendanceRepository.findByUserId(userId);
-//                    if (attendanceOptional.isPresent()) {
-//                        Attendance attendance = attendanceOptional.get();
-//                        attendance.setScanOutTime(inScanDto.getPresentTime());
-//                        attendanceRepository.save(attendance);
-//                        return new ResponseEntity<>("Scan Out Time : " + inScanDto.getPresentTime(), HttpStatus.OK);
-//                    } else {
-//                        return new ResponseEntity<>("userId is not valid", HttpStatus.NOT_FOUND);
-//                    }
-//                } else {
-//                    return new ResponseEntity<>("Scan out Date is not present", HttpStatus.NOT_FOUND);
-//                }
-//            } else {
-//                return new ResponseEntity<>("Scan Type is not mentioned", HttpStatus.NOT_FOUND);
-//            }
-//
-//        }
-//        return new ResponseEntity<>("Invalid UserId ", HttpStatus.NOT_FOUND);
-//    }
+
 
 
     public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
         Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
         if (usersModelOptional.isPresent()) {
             UsersModel usersModel = usersModelOptional.get();
-
-            // Ensure userName and batchType are retrieved
-            String userName = usersModel.getName(); // Ensure `getName` is correct
-            String batchType = usersModel.getBatch(); // Ensure `getBatch` is correct
+            String userName = usersModel.getName();
+            String batchType = usersModel.getBatch();
 
             String typeData = inScanDto.getType();
 
@@ -221,46 +117,132 @@ public class UsersService {
         }
 
         LocalDate currentDate = LocalDate.now();
-        if (currentDate.equals(inScanDto.getPresentDate())) {
+        if (!currentDate.equals(inScanDto.getPresentDate())) {
+            return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
+        }
+
+        // Check if the user has already scanned in for the current date
+        Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
+        if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
+            return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
+        }
+
+        // Check for approved late request
+        Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findByUserIdAndDate(userId, currentDate);
+        if (lateRequestOptional.isPresent() && lateRequestOptional.get().getStatus() == LateRequestStatus.APPROVED) {
+            LateRequestModel lateRequest = lateRequestOptional.get();
+            LocalTime allowedTime = batchType.equalsIgnoreCase("morning batch") ? LocalTime.of(9, 30) : LocalTime.of(13, 30);
+
             Attendance attendance = new Attendance();
             attendance.setUserId(userId);
             attendance.setUserName(userName);
             attendance.setBatchType(batchType);
-            attendance.setAttendanceDate(inScanDto.getPresentDate());
-            attendance.setScanInTime(inScanDto.getPresentTime());
-
-            if (batchType.equalsIgnoreCase("morning batch")) {
-                LocalTime allowedTime = LocalTime.of(9, 41);
-                attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
-            } else if (batchType.equalsIgnoreCase("evening batch")) {
-                LocalTime allowedTime = LocalTime.of(13, 41);
-                attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
-            } else {
-                return new ResponseEntity<>("Batch type isn't valid", HttpStatus.NOT_FOUND);
-            }
+            attendance.setAttendanceDate(currentDate);
+            attendance.setScanInTime(allowedTime);
+            attendance.setStatus("Punctual");
 
             attendanceRepository.save(attendance);
-            return new ResponseEntity<>("Scan In Successful", HttpStatus.OK);
+            return new ResponseEntity<>("Scan In Successful (Late Request Approved)", HttpStatus.OK);
         }
-        return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
+
+        // Default behavior if no approved late request
+        Attendance attendance = new Attendance();
+        attendance.setUserId(userId);
+        attendance.setUserName(userName);
+        attendance.setBatchType(batchType);
+        attendance.setAttendanceDate(currentDate);
+        attendance.setScanInTime(inScanDto.getPresentTime());
+
+        if (batchType.equalsIgnoreCase("morning batch")) {
+            LocalTime allowedTime = LocalTime.of(9, 30);
+            attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
+        } else if (batchType.equalsIgnoreCase("evening batch")) {
+            LocalTime allowedTime = LocalTime.of(13, 30);
+            attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
+        } else {
+            return new ResponseEntity<>("Batch type isn't valid", HttpStatus.NOT_FOUND);
+        }
+
+        attendanceRepository.save(attendance);
+        return new ResponseEntity<>("Scan In Successful", HttpStatus.OK);
     }
+
+//    public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
+//        Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
+//        if (usersModelOptional.isPresent()) {
+//            UsersModel usersModel = usersModelOptional.get();
+//            String userName = usersModel.getName(); // Ensure getName is correct
+//            String batchType = usersModel.getBatch(); // Ensure getBatch is correct
+//
+//            String typeData = inScanDto.getType();
+//
+//            try {
+//                if (typeData != null && typeData.equalsIgnoreCase("in")) {
+//                    return handleScanIn(userId, userName, batchType, inScanDto);
+//                } else if (typeData != null && typeData.equalsIgnoreCase("out")) {
+//                    return handleScanOut(userId, inScanDto);
+//                } else {
+//                    return new ResponseEntity<>("Scan Type is not mentioned", HttpStatus.BAD_REQUEST);
+//                }
+//            } finally {
+//                qrCodeService.regenerateQRCode();
+//            }
+//        }
+//        return new ResponseEntity<>("Invalid UserId", HttpStatus.NOT_FOUND);
+//    }
+//
+//    private ResponseEntity<?> handleScanIn(Long userId, String userName, String batchType, InScanDto inScanDto) {
+//        if (userName == null || batchType == null) {
+//            return new ResponseEntity<>("User details are incomplete", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        LocalDate currentDate = LocalDate.now();
+//        if (currentDate.equals(inScanDto.getPresentDate())) {
+//            // Check if the user has already scanned in for the current date
+//            Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
+//            if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
+//                return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
+//            }
+//
+//            Attendance attendance = new Attendance();
+//            attendance.setUserId(userId);
+//            attendance.setUserName(userName);
+//            attendance.setBatchType(batchType);
+//            attendance.setAttendanceDate(inScanDto.getPresentDate());
+//            attendance.setScanInTime(inScanDto.getPresentTime());
+//
+//            if (batchType.equalsIgnoreCase("morning batch")) {
+//                LocalTime allowedTime = LocalTime.of(10, 41);
+//                attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
+//            } else if (batchType.equalsIgnoreCase("evening batch")) {
+//                LocalTime allowedTime = LocalTime.of(13, 41);
+//                attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
+//            } else {
+//                return new ResponseEntity<>("Batch type isn't valid", HttpStatus.NOT_FOUND);
+//            }
+//
+//            attendanceRepository.save(attendance);
+//            return new ResponseEntity<>("Scan In Successful", HttpStatus.OK);
+//        }
+//        return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
+//    }
 
     private ResponseEntity<?> handleScanOut(Long userId, InScanDto inScanDto) {
         LocalDate currentDate = LocalDate.now();
         if (currentDate.equals(inScanDto.getPresentDate())) {
+            // Check if the user has already scanned in and not scanned out
             Optional<Attendance> attendanceOptional = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
-            if (attendanceOptional.isPresent()) {
-                Attendance attendance = attendanceOptional.get();
-                attendance.setScanOutTime(inScanDto.getPresentTime());
-                attendanceRepository.save(attendance);
-                return new ResponseEntity<>("Scan Out Successful", HttpStatus.OK);
+            if (!attendanceOptional.isPresent() || attendanceOptional.get().getScanInTime() == null) {
+                return new ResponseEntity<>("User must scan in before scanning out", HttpStatus.BAD_REQUEST);
             }
-            return new ResponseEntity<>("No Scan In record found for the user", HttpStatus.NOT_FOUND);
+
+            Attendance attendance = attendanceOptional.get();
+            attendance.setScanOutTime(inScanDto.getPresentTime());
+            attendanceRepository.save(attendance);
+            return new ResponseEntity<>("Scan Out Successful", HttpStatus.OK);
         }
         return new ResponseEntity<>("Scan Out Date is not correct", HttpStatus.BAD_REQUEST);
     }
-
-
 
 
 

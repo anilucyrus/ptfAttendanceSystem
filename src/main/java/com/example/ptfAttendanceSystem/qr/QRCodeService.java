@@ -16,12 +16,11 @@ import java.util.Base64;
 
 @Service
 public class QRCodeService {
-
-
     private static final int QR_CODE_WIDTH = 250;
     private static final int QR_CODE_HEIGHT = 250;
 
     private String currentQRCode;
+    private int statusFlag = 0; // 0: Not Scanned, 1: Scanned
 
     public String generateQRCodeAsString(String qrContent) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
@@ -50,6 +49,7 @@ public class QRCodeService {
     public void regenerateQRCode() {
         try {
             this.currentQRCode = generateCurrentQRCode();
+            this.statusFlag = 0; // Reset flag when a new QR code is generated
             System.out.println("QR Code Regenerated: " + this.currentQRCode);
         } catch (WriterException | IOException e) {
             e.printStackTrace();
@@ -60,5 +60,11 @@ public class QRCodeService {
         return this.currentQRCode;
     }
 
+    public int getStatusFlag() {
+        return this.statusFlag;
+    }
 
+    public void setStatusFlag(int statusFlag) {
+        this.statusFlag = statusFlag;
+    }
 }

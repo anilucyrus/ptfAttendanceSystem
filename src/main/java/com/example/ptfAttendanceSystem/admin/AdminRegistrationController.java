@@ -10,6 +10,7 @@ import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestStatus;
 import com.example.ptfAttendanceSystem.model.ForgotPasswordDto;
 import com.example.ptfAttendanceSystem.model.UsersModel;
+import com.example.ptfAttendanceSystem.model.UsersRepository;
 import com.example.ptfAttendanceSystem.model.UsersService;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import com.example.ptfAttendanceSystem.qr.ScanDto;
@@ -55,6 +56,9 @@ public class AdminRegistrationController {
 
     @Autowired
     private AdminRepository adminRepository;
+
+    @Autowired
+    private UsersRepository usersRepository;
 
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
@@ -214,12 +218,11 @@ public class AdminRegistrationController {
 //    }
 
 
+//15/1/25
 
-    // Endpoint to retrieve the current QR code
     @GetMapping(path = "/generateQr")
     public ResponseEntity<?> getQRCode() {
         try {
-            // Retrieve the pre-generated QR code
             String currentQRCode = qrCodeService.getCurrentQRCode();
             return new ResponseEntity<>(currentQRCode, HttpStatus.OK);
         } catch (Exception e) {
@@ -227,6 +230,35 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Error retrieving QR code", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @GetMapping(path = "/getQrStatus")
+    public ResponseEntity<?> getQRCodeStatus() {
+        try {
+            int statusFlag = qrCodeService.getStatusFlag();
+            return new ResponseEntity<>(Map.of("status", statusFlag), HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(Map.of("error", "Error retrieving QR status"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+
+
+
+//
+//    // Endpoint to retrieve the current QR code
+//    @GetMapping(path = "/generateQr")
+//    public ResponseEntity<?> getQRCode() {
+//        try {
+//            // Retrieve the pre-generated QR code
+//            String currentQRCode = qrCodeService.getCurrentQRCode();
+//            return new ResponseEntity<>(currentQRCode, HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Error retrieving QR code", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
 
     // Method to generate and write QR code to response
     private void generateQrCode(String content, HttpServletResponse response) throws WriterException, IOException {
@@ -253,6 +285,47 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Error handling scan", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
+
+
+//    @GetMapping(path = "/generateQr")
+//    public ResponseEntity<?> getQRCode() {
+//        try {
+//            // Retrieve the pre-generated QR code
+//            String currentQRCode = qrCodeService.getCurrentQRCode();
+//            return new ResponseEntity<>(currentQRCode, HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Error retrieving QR code", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+//
+//    // Method to generate and write QR code to response
+//    private void generateQrCode(String content, HttpServletResponse response) throws WriterException, IOException {
+//        QRCodeWriter qrCodeWriter = new QRCodeWriter();
+//        BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);
+//
+//        // Set response headers for the image output
+//        response.setContentType("image/png");
+//        try (OutputStream out = response.getOutputStream()) {
+//            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", out);
+//        }
+//    }
+//
+//    @PostMapping(path = "/scan")
+//    public ResponseEntity<?> handleScan(@RequestBody ScanDto scanDto) {
+//        try {
+//            // Handle the scan logic here, such as saving to the database
+//            adminService.handleScan(scanDto.getToken());  // Use the token or user ID to identify the scan
+//
+//            // Return a response indicating successful scan
+//            return new ResponseEntity<>("Scan recorded successfully", HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Error handling scan", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
 
     @GetMapping("/getAllUsers")
     public ResponseEntity<List<UsersModel>> getAllUsers() {
@@ -499,8 +572,8 @@ public class AdminRegistrationController {
     }
 
     // New method to get a user's attendance between two specific dates
-    @GetMapping("/attendance/user/{userId}/from/{startDate}/to/{endDate}")
-    public ResponseEntity<?> getUserAttendanceBetweenDates(@PathVariable Long userId, @PathVariable String startDate, @PathVariable String endDate) {
+    @GetMapping("/attendance/userDate-range")
+    public ResponseEntity<?> getUserAttendanceBetweenDates(@RequestParam Long userId, @RequestParam String startDate, @RequestParam String endDate) {
         try {
             LocalDate start = LocalDate.parse(startDate);
             LocalDate end = LocalDate.parse(endDate);
@@ -519,5 +592,21 @@ public class AdminRegistrationController {
         } catch (DateTimeParseException e) {
             return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd format.", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    // New endpoint for deleting a user
+    @DeleteMapping(path = "/deleteUser")
+    public ResponseEntity<?> deleteUser(@RequestParam Long id) {
+        try {
+            boolean isDeleted = usersService.deleteUser(id);
+            if (isDeleted) {
+                return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
