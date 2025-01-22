@@ -7,6 +7,8 @@ import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
+import com.example.ptfAttendanceSystem.late_table.LateAttendance;
+import com.example.ptfAttendanceSystem.late_table.LateAttendanceRepository;
 import com.example.ptfAttendanceSystem.leave.*;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,12 @@ public class UsersService {
 
     @Autowired
     private QRCodeService qrCodeService;
+
+    @Autowired
+    private LateAttendanceRepository lateAttendanceRepository;
+
+
+
 
     @Autowired
 
@@ -84,8 +92,6 @@ public class UsersService {
 
         mailSender.send(message);
     }
-
-
 
     public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
         Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
@@ -130,7 +136,6 @@ public class UsersService {
         // Check for approved late request
         Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findByUserIdAndDate(userId, currentDate);
         if (lateRequestOptional.isPresent() && lateRequestOptional.get().getStatus() == LateRequestStatus.APPROVED) {
-            LateRequestModel lateRequest = lateRequestOptional.get();
             LocalTime allowedTime = batchType.equalsIgnoreCase("morning batch") ? LocalTime.of(9, 30) : LocalTime.of(13, 30);
 
             Attendance attendance = new Attendance();
@@ -145,6 +150,14 @@ public class UsersService {
             return new ResponseEntity<>("Scan In Successful (Late Request Approved)", HttpStatus.OK);
         }
 
+        // Check late attendance count
+        List<LateAttendance> lateRecords = lateAttendanceRepository.findByUserId(userId);
+        if (lateRecords.size() >= 4) {
+            // User has 4 lates; do not mark attendance and clear late records
+            lateAttendanceRepository.deleteAll(lateRecords);
+            return new ResponseEntity<>("Attendance not marked. You have been marked as leave due to 4 late attendances.", HttpStatus.BAD_REQUEST);
+        }
+
         // Default behavior if no approved late request
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
@@ -155,10 +168,20 @@ public class UsersService {
 
         if (batchType.equalsIgnoreCase("morning batch")) {
             LocalTime allowedTime = LocalTime.of(9, 30);
-            attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
+            if (inScanDto.getPresentTime().isAfter(allowedTime)) {
+                saveLateUser(userId, userName, batchType, inScanDto, "Late");
+                attendance.setStatus("Late");
+            } else {
+                attendance.setStatus("Punctual");
+            }
         } else if (batchType.equalsIgnoreCase("evening batch")) {
             LocalTime allowedTime = LocalTime.of(13, 30);
-            attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
+            if (inScanDto.getPresentTime().isAfter(allowedTime)) {
+                saveLateUser(userId, userName, batchType, inScanDto, "Late");
+                attendance.setStatus("Late");
+            } else {
+                attendance.setStatus("Punctual");
+            }
         } else {
             return new ResponseEntity<>("Batch type isn't valid", HttpStatus.NOT_FOUND);
         }
@@ -166,6 +189,26 @@ public class UsersService {
         attendanceRepository.save(attendance);
         return new ResponseEntity<>("Scan In Successful", HttpStatus.OK);
     }
+
+
+
+
+
+
+    private void saveLateUser(Long userId, String userName, String batchType, InScanDto inScanDto, String status) {
+        LateAttendance lateAttendance = new LateAttendance();
+        lateAttendance.setUserId(userId);
+        lateAttendance.setUserName(userName);
+        lateAttendance.setBatchType(batchType);
+        lateAttendance.setAttendanceDate(inScanDto.getPresentDate());
+        lateAttendance.setScanInTime(inScanDto.getPresentTime());
+        lateAttendance.setReasonForLateness("Arrived after allowed time");
+        lateAttendance.setStatus(status);
+
+        // Save the late attendance record to the repository
+        lateAttendanceRepository.save(lateAttendance);
+    }
+
 
 //    public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
 //        Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);

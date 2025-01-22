@@ -595,10 +595,10 @@ public class AdminRegistrationController {
     }
 
     // New endpoint for deleting a user
-    @DeleteMapping(path = "/deleteUser")
-    public ResponseEntity<?> deleteUser(@RequestParam Long id) {
+    @DeleteMapping(path = "/deleteUser/{userId}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
         try {
-            boolean isDeleted = usersService.deleteUser(id);
+            boolean isDeleted = usersService.deleteUser(userId);
             if (isDeleted) {
                 return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
             } else {
