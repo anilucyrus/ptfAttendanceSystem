@@ -4,6 +4,7 @@ package com.example.ptfAttendanceSystem.admin;
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
+import com.example.ptfAttendanceSystem.late.LateRequestRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
@@ -59,6 +60,9 @@ public class AdminRegistrationController {
 
     @Autowired
     private UsersRepository usersRepository;
+
+    @Autowired
+    private LateRequestRepository lateRequestRepository;
 
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
@@ -609,4 +613,48 @@ public class AdminRegistrationController {
         }
         return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    // New endpoint to delete attendance for a given month
+    @DeleteMapping(path = "/deleteAttendance/{year}/{month}")
+    public ResponseEntity<?> deleteAttendanceForMonth(@PathVariable int year, @PathVariable int month) {
+        try {
+            return adminService.deleteAttendanceForMonth(year, month);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>("Failed to delete attendance records", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+
+    @DeleteMapping(path = "/deleteLeaveRequests/{year}/{month}")
+    public ResponseEntity<?> deleteLeaveRequestsForMonth(@PathVariable int year, @PathVariable int month) {
+        try {
+            return adminService.deleteLeaveRequestsForMonth(year, month);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @DeleteMapping(path = "/deleteLateRequests/{year}/{month}")
+    public ResponseEntity<?> deleteLateRequestsByMonth(@PathVariable int year, @PathVariable int month) {
+        try {
+            LocalDate startOfMonth = LocalDate.of(year, month, 1);
+            LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
+
+            List<LateRequestModel> lateRequests = lateRequestRepository.findByDateBetween(startOfMonth, endOfMonth);
+
+            if (lateRequests.isEmpty()) {
+                return new ResponseEntity<>("No records found", HttpStatus.NOT_FOUND);
+            }
+
+            lateRequestRepository.deleteAll(lateRequests);
+            return new ResponseEntity<>("Records deleted successfully", HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
 }

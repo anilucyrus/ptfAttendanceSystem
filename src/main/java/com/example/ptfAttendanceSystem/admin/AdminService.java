@@ -429,5 +429,40 @@ public void handleScan(String userId) {
         mailSender.send(message);
     }
 
+    public ResponseEntity<?> deleteAttendanceForMonth(int year, int month) {
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+
+        // Fetch records to check if they exist before deletion
+        List<Attendance> attendanceRecords = attendanceRepository.findByAttendanceDateBetween(startDate, endDate);
+
+        if (attendanceRecords.isEmpty()) {
+            return new ResponseEntity<>("No attendance records found for the specified month", HttpStatus.NOT_FOUND);
+        }
+
+        // Perform deletion
+        attendanceRepository.deleteByAttendanceDateBetween(startDate, endDate);
+
+        return new ResponseEntity<>("Attendance records for the month deleted successfully", HttpStatus.OK);
+    }
+
+
+
+    public ResponseEntity<?> deleteLeaveRequestsForMonth(int year, int month) {
+        LocalDate startOfMonth = LocalDate.of(year, month, 1);
+        LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
+
+        // Check for existing records
+        List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDateBetween(startOfMonth, endOfMonth);
+        if (leaveRequests.isEmpty()) {
+            return new ResponseEntity<>("No leave records found for the specified month", HttpStatus.NOT_FOUND);
+        }
+
+        // Delete the records
+        leaveRequestRepository.deleteByFromDateBetween(startOfMonth, endOfMonth);
+        return new ResponseEntity<>("Leave requests for the specified month have been deleted successfully", HttpStatus.OK);
+    }
+
+
 
 }

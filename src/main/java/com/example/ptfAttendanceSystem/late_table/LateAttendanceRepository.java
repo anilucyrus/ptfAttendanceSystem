@@ -10,4 +10,6 @@ import java.util.List;
 public interface LateAttendanceRepository extends JpaRepository<LateAttendance, Long> {
     List<LateAttendance> findByAttendanceDate(LocalDate attendanceDate);
     List<LateAttendance> findByUserId(Long userId);
+
+
 }

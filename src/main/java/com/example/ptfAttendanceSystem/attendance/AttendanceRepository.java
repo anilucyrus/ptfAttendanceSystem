@@ -1,6 +1,8 @@
 package com.example.ptfAttendanceSystem.attendance;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -24,5 +26,11 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     // New method to find attendance for all users in a particular date range
     List<Attendance> findByAttendanceDateBetween(LocalDate startDate, LocalDate endDate);
+
+
+    @Transactional
+    @Modifying
+    void deleteByAttendanceDateBetween(LocalDate startDate, LocalDate endDate);
+
 
 }

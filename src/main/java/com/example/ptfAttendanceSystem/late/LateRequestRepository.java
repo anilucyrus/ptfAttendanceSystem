@@ -17,4 +17,6 @@ public interface LateRequestRepository  extends JpaRepository<LateRequestModel, 
 
     Optional<LateRequestModel> findByUserIdAndDate(Long userId, LocalDate date);
 
+    List<LateRequestModel> findByDateBetween(LocalDate startDate, LocalDate endDate);
+
 }
