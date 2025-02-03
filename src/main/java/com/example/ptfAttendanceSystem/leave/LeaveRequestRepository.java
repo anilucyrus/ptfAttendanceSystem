@@ -3,6 +3,8 @@ package com.example.ptfAttendanceSystem.leave;
 
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -21,4 +23,9 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequestModel,
 
     @Transactional
     void deleteByFromDateBetween(LocalDate startDate, LocalDate endDate);
+
+    @Query("SELECT COUNT(l) > 0 FROM LeaveRequestModel l WHERE l.userId = :userId AND l.fromDate <= :toDate AND l.toDate >= :fromDate")
+    boolean existsByUserIdAndFromDateLessThanEqualAndToDateGreaterThanEqual(@Param("userId") Long userId, @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
+
+
 }

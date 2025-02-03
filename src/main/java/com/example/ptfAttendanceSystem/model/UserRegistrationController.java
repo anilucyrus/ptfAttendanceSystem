@@ -220,6 +220,14 @@ public class UserRegistrationController {
                 return new ResponseEntity<>("From date cannot be after To date", HttpStatus.BAD_REQUEST);
             }
 
+            // Step 4: Check if user already has a leave request for the same day
+            boolean exists = leaveRequestRepository.existsByUserIdAndFromDateLessThanEqualAndToDateGreaterThanEqual(
+                    userId, leaveRequestDto.getToDate(), leaveRequestDto.getFromDate());
+            if (exists) {
+                return new ResponseEntity<>("User already has a leave request for the selected date(s)", HttpStatus.BAD_REQUEST);
+            }
+
+
             // Step 4: Create a new LeaveRequestModel
             LeaveRequestModel leaveRequest = new LeaveRequestModel();
             leaveRequest.setUserId(userModel.getUserId());
@@ -360,6 +368,7 @@ public class UserRegistrationController {
         }
     }
 
+
     @PostMapping("/late-request")
     public ResponseEntity<?> requestLate(@RequestParam Long userId, @RequestBody LateRequestDto lateRequestDto) {
         try {
@@ -371,55 +380,58 @@ public class UserRegistrationController {
             }
 
             UsersModel userModel = user.get();
-
-            // Step 2: Check batch and the time constraint
-            String batch = userModel.getBatch();
+            LocalDate requestedDate = lateRequestDto.getDate();
+            LocalDate currentDate = LocalDate.now();
             LocalTime currentTime = LocalTime.now();
+
+            // Step 2: Check if the user has already submitted a late request for the same date
+            Optional<LateRequestModel> existingRequest = lateRequestRepository.findByUserIdAndDate(userModel.getUserId(), requestedDate);
+            if (existingRequest.isPresent()) {
+                return new ResponseEntity<>("You have already submitted a late request for today.", HttpStatus.BAD_REQUEST);
+            }
+
+            // Step 3: Validate batch and time constraint
+            String batch = userModel.getBatch();
             LocalTime allowedTime = null;
 
             if ("morning batch".equalsIgnoreCase(batch)) {
-                allowedTime = LocalTime.of(9, 40);  // Batch 1's time restriction is 9:30 AM
+                allowedTime = LocalTime.of(9, 30);
             } else if ("evening batch".equalsIgnoreCase(batch)) {
-                allowedTime = LocalTime.of(13, 40); // Batch 2's time restriction is 1:30 PM (13:30)
+                allowedTime = LocalTime.of(13, 30);
             } else {
                 return new ResponseEntity<>("Invalid batch", HttpStatus.BAD_REQUEST);
             }
 
-            // Step 3: Check if the date is in the past
-            LocalDate requestedDate = lateRequestDto.getDate();
-            LocalDate currentDate = LocalDate.now();
-
+            // Step 4: Check if the request is for a past date
             if (requestedDate.isBefore(currentDate)) {
                 return new ResponseEntity<>("Late request cannot be made for a past date", HttpStatus.BAD_REQUEST);
             }
 
-            // Step 4: Compare current time with the allowed time for batch
+            // Step 5: Compare current time with allowed batch time
             if (currentTime.isAfter(allowedTime)) {
-                String errorMessage = "Late request not allowed for this batch after " + allowedTime.toString();
-                return new ResponseEntity<>(errorMessage, HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>("Late request not allowed for this batch after " + allowedTime.toString(), HttpStatus.BAD_REQUEST);
             }
 
-            // Step 5: Process the late request
+            // Step 6: Process the late request
             LateRequestModel lateRequest = new LateRequestModel();
             lateRequest.setUserId(userModel.getUserId());
             lateRequest.setReason(lateRequestDto.getReason());
-            lateRequest.setDate(lateRequestDto.getDate());
-            lateRequest.setStatus(LateRequestStatus.PENDING);  // Default status is PENDING
+            lateRequest.setDate(requestedDate);
+            lateRequest.setStatus(LateRequestStatus.PENDING);
             lateRequest.setName(userModel.getName());
             lateRequest.setBatch(userModel.getBatch());
 
-            // Save the late request in the repository
             lateRequestRepository.save(lateRequest);
 
-            // Step 6: Prepare response DTO with status
+            // Step 7: Prepare response DTO
             LateRequestResponseDto responseDto = new LateRequestResponseDto(
                     userModel.getUserId(),
                     userModel.getName(),
                     userModel.getEmail(),
                     userModel.getBatch(),
                     lateRequestDto.getReason(),
-                    lateRequestDto.getDate(),
-                    lateRequest.getStatus().name()  // Add the status field to the response
+                    requestedDate,
+                    lateRequest.getStatus().name()
             );
 
             return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
@@ -429,10 +441,8 @@ public class UserRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
-//    @PostMapping("/late-request/{userId}")
-//    public ResponseEntity<?> requestLate(@PathVariable Long userId,@RequestBody LateRequestDto lateRequestDto) {
+//    @PostMapping("/late-request")
+//    public ResponseEntity<?> requestLate(@RequestParam Long userId, @RequestBody LateRequestDto lateRequestDto) {
 //        try {
 //            // Step 1: Find user by email
 //            Optional<UsersModel> user = usersService.findByEmail(lateRequestDto.getEmail());
@@ -449,9 +459,9 @@ public class UserRegistrationController {
 //            LocalTime allowedTime = null;
 //
 //            if ("morning batch".equalsIgnoreCase(batch)) {
-//                allowedTime = LocalTime.of(11, 40);  // Batch 1's time restriction is 9:30 AM
+//                allowedTime = LocalTime.of(9, 40);  // Batch 1's time restriction is 9:30 AM
 //            } else if ("evening batch".equalsIgnoreCase(batch)) {
-//                allowedTime = LocalTime.of(23, 40); // Batch 2's time restriction is 1:30 PM (13:30)
+//                allowedTime = LocalTime.of(13, 40); // Batch 2's time restriction is 1:30 PM (13:30)
 //            } else {
 //                return new ResponseEntity<>("Invalid batch", HttpStatus.BAD_REQUEST);
 //            }
@@ -464,35 +474,33 @@ public class UserRegistrationController {
 //                return new ResponseEntity<>("Late request cannot be made for a past date", HttpStatus.BAD_REQUEST);
 //            }
 //
-//
 //            // Step 4: Compare current time with the allowed time for batch
 //            if (currentTime.isAfter(allowedTime)) {
 //                String errorMessage = "Late request not allowed for this batch after " + allowedTime.toString();
 //                return new ResponseEntity<>(errorMessage, HttpStatus.BAD_REQUEST);
 //            }
 //
-//
-//
 //            // Step 5: Process the late request
 //            LateRequestModel lateRequest = new LateRequestModel();
 //            lateRequest.setUserId(userModel.getUserId());
 //            lateRequest.setReason(lateRequestDto.getReason());
 //            lateRequest.setDate(lateRequestDto.getDate());
-//            lateRequest.setStatus(LateRequestStatus.PENDING);
+//            lateRequest.setStatus(LateRequestStatus.PENDING);  // Default status is PENDING
 //            lateRequest.setName(userModel.getName());
 //            lateRequest.setBatch(userModel.getBatch());
 //
 //            // Save the late request in the repository
 //            lateRequestRepository.save(lateRequest);
 //
-//            // Step 6: Prepare response DTO
+//            // Step 6: Prepare response DTO with status
 //            LateRequestResponseDto responseDto = new LateRequestResponseDto(
 //                    userModel.getUserId(),
 //                    userModel.getName(),
 //                    userModel.getEmail(),
 //                    userModel.getBatch(),
 //                    lateRequestDto.getReason(),
-//                    lateRequestDto.getDate()
+//                    lateRequestDto.getDate(),
+//                    lateRequest.getStatus().name()  // Add the status field to the response
 //            );
 //
 //            return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
@@ -502,6 +510,7 @@ public class UserRegistrationController {
 //            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
 //        }
 //    }
+
 
 
     @DeleteMapping("/late-request")

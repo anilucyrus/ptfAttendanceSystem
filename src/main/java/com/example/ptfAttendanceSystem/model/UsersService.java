@@ -167,7 +167,7 @@ public class UsersService {
         attendance.setScanInTime(inScanDto.getPresentTime());
 
         if (batchType.equalsIgnoreCase("morning batch")) {
-            LocalTime allowedTime = LocalTime.of(9, 30);
+            LocalTime allowedTime = LocalTime.of(9, 40);
             if (inScanDto.getPresentTime().isAfter(allowedTime)) {
                 saveLateUser(userId, userName, batchType, inScanDto, "Late");
                 attendance.setStatus("Late");
@@ -175,7 +175,7 @@ public class UsersService {
                 attendance.setStatus("Punctual");
             }
         } else if (batchType.equalsIgnoreCase("evening batch")) {
-            LocalTime allowedTime = LocalTime.of(13, 30);
+            LocalTime allowedTime = LocalTime.of(13, 40);
             if (inScanDto.getPresentTime().isAfter(allowedTime)) {
                 saveLateUser(userId, userName, batchType, inScanDto, "Late");
                 attendance.setStatus("Late");
