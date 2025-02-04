@@ -15,7 +15,7 @@ public class LateAttendance {
    @Id
 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Unique identifier
+    private Long id;
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -35,7 +35,7 @@ public class LateAttendance {
     private String reasonForLateness;
 
     @Column(name = "status", nullable = false)
-    private String status; // Example: "Late"
+    private String status;
 
     public Long getId() {
         return id;

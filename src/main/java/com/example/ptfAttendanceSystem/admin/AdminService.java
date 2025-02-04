@@ -2,6 +2,8 @@ package com.example.ptfAttendanceSystem.admin;
 
 
 
+
+
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
@@ -66,9 +68,7 @@ public class AdminService {
         admin.setName(adminDto.getName());
         admin.setEmail(adminDto.getEmail());
         admin.setPassword(adminDto.getPassword());
-
-        AdminModel savedAdmin = adminRepository.save(admin); // Use the instance variable
-
+        AdminModel savedAdmin = adminRepository.save(admin);
         ARegistrationResponce responce = new ARegistrationResponce(
                 savedAdmin.getId(),
                 savedAdmin.getName(),
@@ -80,24 +80,12 @@ public class AdminService {
 
 
 
-//    15/1/25
-public void handleScan(String userId) {
-    // Logic for handling the scan
-    String newToken = UUID.randomUUID().toString(); // Regenerate the token for each scan
-    qrCodeService.setStatusFlag(1); // Update the status flag to indicate QR has been scanned
-    System.out.println("New Token Generated: " + newToken);
-}
+    public void handleScan(String userId) {
 
-//
-//    public void handleScan(String userId) {
-//        // Logic for handling the scan
-//        String newToken = UUID.randomUUID().toString();  // Regenerate the token for each scan
-//        System.out.println("New Token Generated: " + newToken);
-//    }
-
-    // Regenerate QR Code after scan
-//        qrCodeService.regenerateQRCode();  // This will regenerate QR code every time a scan happens
-//    }
+        String newToken = UUID.randomUUID().toString();
+        qrCodeService.setStatusFlag(1);
+        System.out.println("New Token Generated: " + newToken);
+    }
 
 
     public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails() {
@@ -130,65 +118,19 @@ public void handleScan(String userId) {
     }
 
 
-//
-//    public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails() {
-//        LocalDate currentDate = LocalDate.now();
-//        List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
-//
-//        List<Map<String, Object>> leaveRequestList = new ArrayList<>();
-//
-//        for (LeaveRequestModel leaveRequest : leaveRequests) {
-//            UsersModel user = usersRepository.findById(leaveRequest.getUserId()).orElse(null);
-//
-//            if (user != null) {
-//                Map<String, Object> response = new HashMap<>();
-//                response.put("leaveType", leaveRequest.getLeaveType());
-//                response.put("reason", leaveRequest.getReason());
-//                response.put("fromDate", leaveRequest.getFromDate());
-//                response.put("toDate", leaveRequest.getToDate());
-//                response.put("name", user.getName());  // Include name
-//                response.put("batch", user.getBatch()); // Include batch
-//
-//                leaveRequestList.add(response);
-//            }
-//        }
-//
-//        return leaveRequestList;
-//    }
-
-
-
-
-//    // Fetch leave requests for today
-//    public List<LeaveRequestModel> getLeaveRequestsForToday() {
-//        LocalDate currentDate = LocalDate.now();
-//        return leaveRequestRepository.findByFromDate(currentDate);
-//    }
-
-    // Fetch leave requests by status (PENDING, APPROVED, REJECTED)
     public List<LeaveRequestModel> getLeaveRequestsByStatus(LeaveRequestStatus status) {
         return leaveRequestRepository.findByStatus(status);
     }
 
 
-    // Approve Leave Request and Handle Attendance
     public ResponseEntity<?> approveLeaveRequest(Long leaveRequestId) {
-        // Fetch the leave request by ID
         Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);
-
         if (leaveRequestOptional.isPresent()) {
             LeaveRequestModel leaveRequest = leaveRequestOptional.get();
 
-            // Check if leave request is still pending
             if (leaveRequest.getStatus() == LeaveRequestStatus.PENDING) {
-                // Set status to approved
                 leaveRequest.setStatus(LeaveRequestStatus.APPROVED);
                 leaveRequestRepository.save(leaveRequest);
-
-                // Handle Attendance for the leave period
-//                handleAttendanceForLeave(leaveRequest);
-
-                // Send email confirmation to the user
                 Optional<UsersModel> userOptional = usersRepository.findById(leaveRequest.getUserId());
                 if (userOptional.isPresent()) {
                     UsersModel user = userOptional.get();
@@ -204,28 +146,22 @@ public void handleScan(String userId) {
         }
     }
 
-    // Method to handle attendance for the leave period
     private void handleAttendanceForLeave(LeaveRequestModel leaveRequest) {
         LocalDate startDate = leaveRequest.getFromDate();
         LocalDate endDate = leaveRequest.getToDate();
         Long userId = leaveRequest.getUserId();
-
-        // Iterate over each day of the leave period and mark attendance as "Leave"
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, date);
-
-            // Only create a new attendance if there is no existing record
             if (!existingAttendance.isPresent()) {
                 Attendance attendance = new Attendance();
                 attendance.setUserId(userId);
                 attendance.setAttendanceDate(date);
-                attendance.setStatus("Present"); // Set the status as "Leave"
+                attendance.setStatus("Present");
                 attendanceRepository.save(attendance);
             }
         }
     }
 
-    // Method to send email
     private void sendLeaveRequestApprovalEmail(String userEmail, LeaveRequestModel leaveRequest) {
         String subject = "Leave Request Approved";
         String text = String.format(
@@ -250,13 +186,11 @@ public void handleScan(String userId) {
             mailSender.send(message);
         } catch (MailException e) {
             e.printStackTrace();
-            // Handle exception (logging, etc.)
+
         }
     }
 
 
-
-    // Reject leave request
     public ResponseEntity<?> rejectLeaveRequest(Long leaveRequestId) {
         Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);
 
@@ -331,23 +265,6 @@ public void handleScan(String userId) {
 
 
 
-//
-//
-//    public List<LateRequestModel> getLateRequestsForToday() {
-//        // Get the current date formatted as "YYYY-MM-DD"
-//        String currentDate = LocalDate.now().toString();
-//        List<LateRequestModel> lateRequests = lateRequestRepository.findAllLateRequestsForDate(currentDate);
-//
-//        if (lateRequests.isEmpty()) {
-//            System.out.println("No late requests for today's date: " + currentDate);
-//        } else {
-//            System.out.println("Found " + lateRequests.size() + " late requests for today.");
-//        }
-//
-//        return lateRequests;
-//    }
-
-
 
     public Optional<AdminModel> findByEmailAndPassword(String email, String password) {
         return adminRepository.findByEmailAndPassword(email, password);
@@ -402,15 +319,6 @@ public void handleScan(String userId) {
             AdminModel admin = adminOptional.get();
             admin.setPassword(temporaryPassword);
             adminRepository.save(admin);
-//            public ResponseEntity<?> forgotPassword(ForgotPasswordDto forgotPasswordDto) {
-//                Optional<UsersModel> userOptional = usersRepository.findByEmail(forgotPasswordDto.getEmail());
-//        if (userOptional.isPresent()) {
-//            String temporaryPassword = UUID.randomUUID().toString().substring(0, 8);
-//            UsersModel user = userOptional.get();
-//            user.setPassword(temporaryPassword);
-//            usersRepository.save(user);
-
-
             sendForgotPasswordEmail(admin.getEmail(), temporaryPassword);
 
             return new ResponseEntity<>("Temporary password sent to your email", HttpStatus.OK);
@@ -432,15 +340,12 @@ public void handleScan(String userId) {
     public ResponseEntity<?> deleteAttendanceForMonth(int year, int month) {
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
-
-        // Fetch records to check if they exist before deletion
         List<Attendance> attendanceRecords = attendanceRepository.findByAttendanceDateBetween(startDate, endDate);
 
         if (attendanceRecords.isEmpty()) {
             return new ResponseEntity<>("No attendance records found for the specified month", HttpStatus.NOT_FOUND);
         }
 
-        // Perform deletion
         attendanceRepository.deleteByAttendanceDateBetween(startDate, endDate);
 
         return new ResponseEntity<>("Attendance records for the month deleted successfully", HttpStatus.OK);
@@ -451,14 +356,10 @@ public void handleScan(String userId) {
     public ResponseEntity<?> deleteLeaveRequestsForMonth(int year, int month) {
         LocalDate startOfMonth = LocalDate.of(year, month, 1);
         LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
-
-        // Check for existing records
         List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDateBetween(startOfMonth, endOfMonth);
         if (leaveRequests.isEmpty()) {
             return new ResponseEntity<>("No leave records found for the specified month", HttpStatus.NOT_FOUND);
         }
-
-        // Delete the records
         leaveRequestRepository.deleteByFromDateBetween(startOfMonth, endOfMonth);
         return new ResponseEntity<>("Leave requests for the specified month have been deleted successfully", HttpStatus.OK);
     }

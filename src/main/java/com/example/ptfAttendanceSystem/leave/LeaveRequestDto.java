@@ -8,7 +8,7 @@ import java.time.LocalDate;
 @Data
 public class LeaveRequestDto {
 
-    private String leaveType; // Casual or Sick
+    private String leaveType;
     private String reason;
     private LocalDate fromDate;
     private LocalDate toDate;

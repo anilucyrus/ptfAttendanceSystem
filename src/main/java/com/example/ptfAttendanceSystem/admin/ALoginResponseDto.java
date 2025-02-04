@@ -1,6 +1,8 @@
 package com.example.ptfAttendanceSystem.admin;
 
 
+
+
 import lombok.Data;
 
 @Data
@@ -9,7 +11,7 @@ public class ALoginResponseDto {
     private String email;
     private String name;
     private String token;
-    private String message; // Additional message field
+    private String message;
 
     public ALoginResponseDto(Long id, String email, String name, String token, String message) {
         this.id = id;

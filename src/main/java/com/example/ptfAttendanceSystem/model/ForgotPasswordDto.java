@@ -1,6 +1,7 @@
 package com.example.ptfAttendanceSystem.model;
 
 
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -8,9 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 //@AllArgsConstructor
 public class ForgotPasswordDto {
-    private String email; // User's email to identify the account
-    private String newPassword; // The new password for the account
-    private String confirmPassword; // To confirm the new password
+    private String email;
+    private String newPassword;
+    private String confirmPassword;
 
     public ForgotPasswordDto(String email, String newPassword, String confirmPassword) {
         this.email = email;

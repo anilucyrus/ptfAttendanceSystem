@@ -1,6 +1,7 @@
 package com.example.ptfAttendanceSystem.admin;
 
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 

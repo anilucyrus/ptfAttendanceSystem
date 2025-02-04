@@ -1,6 +1,7 @@
 package com.example.ptfAttendanceSystem.attendance;
 
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -29,7 +30,7 @@ public class Attendance {
 
 
     @Column(name = "scan_in_time")
-    private LocalTime scanInTime; // Store scan-in time
+    private LocalTime scanInTime;
 
     @Column(name = "scan_out_time")
     private LocalTime scanOutTime;

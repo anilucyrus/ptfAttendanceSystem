@@ -1,7 +1,6 @@
 package com.example.ptfAttendanceSystem.model;
 
 
-
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
@@ -117,6 +116,8 @@ public class UsersService {
         return new ResponseEntity<>("Invalid UserId", HttpStatus.NOT_FOUND);
     }
 
+
+
     private ResponseEntity<?> handleScanIn(Long userId, String userName, String batchType, InScanDto inScanDto) {
         if (userName == null || batchType == null) {
             return new ResponseEntity<>("User details are incomplete", HttpStatus.BAD_REQUEST);
@@ -127,13 +128,12 @@ public class UsersService {
             return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
         }
 
-        // Check if the user has already scanned in for the current date
         Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
         if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
             return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
         }
 
-        // Check for approved late request
+
         Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findByUserIdAndDate(userId, currentDate);
         if (lateRequestOptional.isPresent() && lateRequestOptional.get().getStatus() == LateRequestStatus.APPROVED) {
             LocalTime allowedTime = batchType.equalsIgnoreCase("morning batch") ? LocalTime.of(9, 30) : LocalTime.of(13, 30);
@@ -150,15 +150,12 @@ public class UsersService {
             return new ResponseEntity<>("Scan In Successful (Late Request Approved)", HttpStatus.OK);
         }
 
-        // Check late attendance count
         List<LateAttendance> lateRecords = lateAttendanceRepository.findByUserId(userId);
         if (lateRecords.size() >= 4) {
-            // User has 4 lates; do not mark attendance and clear late records
             lateAttendanceRepository.deleteAll(lateRecords);
             return new ResponseEntity<>("Attendance not marked. You have been marked as leave due to 4 late attendances.", HttpStatus.BAD_REQUEST);
         }
 
-        // Default behavior if no approved late request
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
         attendance.setUserName(userName);
@@ -182,6 +179,18 @@ public class UsersService {
             } else {
                 attendance.setStatus("Punctual");
             }
+        }
+
+        else if (batchType.equalsIgnoreCase("regular batch")) {
+            LocalTime allowedTime = LocalTime.of(9, 30);
+            if (inScanDto.getPresentTime().isAfter(allowedTime)) {
+                saveLateUser(userId, userName, batchType, inScanDto, "Late");
+                attendance.setStatus("Late");
+            }
+
+            else {
+                attendance.setStatus("Punctual");
+            }
         } else {
             return new ResponseEntity<>("Batch type isn't valid", HttpStatus.NOT_FOUND);
         }
@@ -189,12 +198,6 @@ public class UsersService {
         attendanceRepository.save(attendance);
         return new ResponseEntity<>("Scan In Successful", HttpStatus.OK);
     }
-
-
-
-
-
-
     private void saveLateUser(Long userId, String userName, String batchType, InScanDto inScanDto, String status) {
         LateAttendance lateAttendance = new LateAttendance();
         lateAttendance.setUserId(userId);
@@ -205,75 +208,13 @@ public class UsersService {
         lateAttendance.setReasonForLateness("Arrived after allowed time");
         lateAttendance.setStatus(status);
 
-        // Save the late attendance record to the repository
         lateAttendanceRepository.save(lateAttendance);
     }
 
 
-//    public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
-//        Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
-//        if (usersModelOptional.isPresent()) {
-//            UsersModel usersModel = usersModelOptional.get();
-//            String userName = usersModel.getName(); // Ensure getName is correct
-//            String batchType = usersModel.getBatch(); // Ensure getBatch is correct
-//
-//            String typeData = inScanDto.getType();
-//
-//            try {
-//                if (typeData != null && typeData.equalsIgnoreCase("in")) {
-//                    return handleScanIn(userId, userName, batchType, inScanDto);
-//                } else if (typeData != null && typeData.equalsIgnoreCase("out")) {
-//                    return handleScanOut(userId, inScanDto);
-//                } else {
-//                    return new ResponseEntity<>("Scan Type is not mentioned", HttpStatus.BAD_REQUEST);
-//                }
-//            } finally {
-//                qrCodeService.regenerateQRCode();
-//            }
-//        }
-//        return new ResponseEntity<>("Invalid UserId", HttpStatus.NOT_FOUND);
-//    }
-//
-//    private ResponseEntity<?> handleScanIn(Long userId, String userName, String batchType, InScanDto inScanDto) {
-//        if (userName == null || batchType == null) {
-//            return new ResponseEntity<>("User details are incomplete", HttpStatus.BAD_REQUEST);
-//        }
-//
-//        LocalDate currentDate = LocalDate.now();
-//        if (currentDate.equals(inScanDto.getPresentDate())) {
-//            // Check if the user has already scanned in for the current date
-//            Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
-//            if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
-//                return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
-//            }
-//
-//            Attendance attendance = new Attendance();
-//            attendance.setUserId(userId);
-//            attendance.setUserName(userName);
-//            attendance.setBatchType(batchType);
-//            attendance.setAttendanceDate(inScanDto.getPresentDate());
-//            attendance.setScanInTime(inScanDto.getPresentTime());
-//
-//            if (batchType.equalsIgnoreCase("morning batch")) {
-//                LocalTime allowedTime = LocalTime.of(10, 41);
-//                attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
-//            } else if (batchType.equalsIgnoreCase("evening batch")) {
-//                LocalTime allowedTime = LocalTime.of(13, 41);
-//                attendance.setStatus(inScanDto.getPresentTime().isBefore(allowedTime) ? "Punctual" : "Late");
-//            } else {
-//                return new ResponseEntity<>("Batch type isn't valid", HttpStatus.NOT_FOUND);
-//            }
-//
-//            attendanceRepository.save(attendance);
-//            return new ResponseEntity<>("Scan In Successful", HttpStatus.OK);
-//        }
-//        return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
-//    }
-
     private ResponseEntity<?> handleScanOut(Long userId, InScanDto inScanDto) {
         LocalDate currentDate = LocalDate.now();
         if (currentDate.equals(inScanDto.getPresentDate())) {
-            // Check if the user has already scanned in and not scanned out
             Optional<Attendance> attendanceOptional = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
             if (!attendanceOptional.isPresent() || attendanceOptional.get().getScanInTime() == null) {
                 return new ResponseEntity<>("User must scan in before scanning out", HttpStatus.BAD_REQUEST);
@@ -288,43 +229,26 @@ public class UsersService {
     }
 
 
-
     public List<Attendance> getAllAttendanceByDate(LocalDate date) {
-        // Retrieve all attendance records for the given date
         return attendanceRepository.findByAttendanceDate(date);
     }
 
 
 
     public List<Attendance> getAttendanceForMonth(Long userId, int month, int year) {
-        // Create a date range for the given month and year
         LocalDate startOfMonth = LocalDate.of(year, month, 1);
         LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
-
-        // Retrieve all attendance records for the user in the given month
         return attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
     }
 
     public Optional<UsersModel> findUserByToken(String token) {
-        // Here you should implement the logic to retrieve the user associated with the token
-        return usersRepository.findByToken(token); // You need to implement this in the repository
+        return usersRepository.findByToken(token);
     }
-
-
-
-
 
 
     public List<LeaveRequestModel> getLeaveRequestsByUserId(Long userId) {
-        return leaveRequestRepository.findByUserId(userId); // Ensure this method is defined in the repository
+        return leaveRequestRepository.findByUserId(userId);
     }
-
-
-
-
-//    public Optional<UsersModel> findByEmail(String email) {
-//        return usersRepository.findByEmail(email); // Ensure this method exists in your repository
-//    }
 
 
     public Optional<UsersModel> findByEmailAndPassword(String email, String password) {
@@ -333,7 +257,7 @@ public class UsersService {
 
 
     public void updateUserToken(UsersModel usersModel) {
-        usersRepository.save(usersModel); // Save the updated admin model with the token
+        usersRepository.save(usersModel);
     }
 
     public List<UsersModel> getAllUsers() {
@@ -343,77 +267,13 @@ public class UsersService {
     public Optional<UsersModel> getUserById(Long id) {
         return usersRepository.findById(id);
     }
-//
-//    //27/7/24
-//    public UsersModel updateUserPassword(Long id, UserDto userDto) throws Exception {
-//        Optional<UsersModel> existingUser = usersRepository.findById(id);
-//        if (!existingUser.isPresent()) {
-//            throw new Exception("User Not Found");
-//        }
-//        UsersModel user = existingUser.get();
-//        user.setPassword(userDto.getPassword());
-//        return usersRepository.save(user);
-//    }
-//
-
-
-
 
     public List<LateRequestModel> getLateRequestsByUserId(Long userId) {
         return lateRequestRepository.findByUserId(userId);
     }
 
-//
-//    public ResponseEntity<?> createLateRequest(LateRequestDto lateRequestDto) {
-//        Optional<UsersModel> usersModelOptional = usersRepository.findById(lateRequestDto.getUserId());
-//        if (usersModelOptional.isPresent()){
-//            UsersModel usersModel = usersModelOptional.get();
-//            if (usersModel.getBatch().equalsIgnoreCase("Morning batch")){
-//                LocalTime lateMaxTime = LocalTime.of(9,40);
-//                if (LocalTime.now().isBefore(lateMaxTime)){
-//                    Optional<LateRequestModel> lateRequestModelOptional = lateRequestRepository.findByUserIdAndDate(lateRequestDto.getUserId(),lateRequestDto.getDate());
-//                    if (lateRequestModelOptional.isPresent()){
-//                        return new ResponseEntity<>("Late request already Submitted",HttpStatus.BAD_REQUEST);
-//                    }else {
-//                        LateRequestModel requestModel = new LateRequestModel();
-//                        requestModel.setUserId(lateRequestDto.getUserId());
-//                        requestModel.setDate(LocalDate.now());
-//                        requestModel.setReason(lateRequestDto.getReason());
-//                        requestModel.setStatus(LateRequestStatus.PENDING);
-//                        lateRequestRepository.save(requestModel);
-//                        return new ResponseEntity<>("Late request marked ",HttpStatus.OK);
-//                    }
-//
-//                }else {
-//                    return new ResponseEntity<>("Late request is not allowed for this current time ",HttpStatus.CONFLICT);
-//                }
-//            } else if (usersModel.getBatch().equalsIgnoreCase("Evening Batch")) {
-//                LocalTime lateMaxTime = LocalTime.of(13,40);
-//                if (LocalTime.now().isBefore(lateMaxTime)){
-//                    Optional<LateRequestModel> lateRequestModelOptional = lateRequestRepository.findByUserIdAndDate(lateRequestDto.getUserId(),lateRequestDto.getDate());
-//                    if (lateRequestModelOptional.isPresent()){
-//                        return new ResponseEntity<>("Late request already Submitted",HttpStatus.BAD_REQUEST);
-//                    }else {
-//                        LateRequestModel requestModel = new LateRequestModel();
-//                        requestModel.setUserId(lateRequestDto.getUserId());
-//                        requestModel.setDate(LocalDate.now());
-//                        requestModel.setReason(lateRequestDto.getReason());
-//                        requestModel.setStatus(LateRequestStatus.PENDING);
-//                        lateRequestRepository.save(requestModel);
-//                        return new ResponseEntity<>("Late request marked ",HttpStatus.OK);
-//                    }
-//
-//                }else {
-//                    return new ResponseEntity<>("Late request is not allowed for this current time ",HttpStatus.CONFLICT);
-//                }
-//            }
-//
-//        }return new ResponseEntity<>("UserId is not valid",HttpStatus.NOT_FOUND);
-//    }
-////
-
     public Optional<UsersModel> findByEmail(String email) {
-        return usersRepository.findByEmail(email); // Ensure this method exists in your repository
+        return usersRepository.findByEmail(email);
     }
 
 

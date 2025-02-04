@@ -1,5 +1,6 @@
 package com.example.ptfAttendanceSystem.admin;
 
+
 import lombok.Data;
 import org.springframework.stereotype.Component;
 

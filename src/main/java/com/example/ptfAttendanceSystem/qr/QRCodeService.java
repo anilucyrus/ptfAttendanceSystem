@@ -1,5 +1,6 @@
 package com.example.ptfAttendanceSystem.qr;
 
+
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
@@ -20,7 +21,7 @@ public class QRCodeService {
     private static final int QR_CODE_HEIGHT = 250;
 
     private String currentQRCode;
-    private int statusFlag = 0; // 0: Not Scanned, 1: Scanned
+    private int statusFlag = 0;
 
     public String generateQRCodeAsString(String qrContent) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
@@ -49,7 +50,7 @@ public class QRCodeService {
     public void regenerateQRCode() {
         try {
             this.currentQRCode = generateCurrentQRCode();
-            this.statusFlag = 0; // Reset flag when a new QR code is generated
+            this.statusFlag = 0;
             System.out.println("QR Code Regenerated: " + this.currentQRCode);
         } catch (WriterException | IOException e) {
             e.printStackTrace();

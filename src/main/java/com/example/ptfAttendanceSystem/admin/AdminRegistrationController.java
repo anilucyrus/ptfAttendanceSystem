@@ -1,8 +1,11 @@
 package com.example.ptfAttendanceSystem.admin;
 
 
+
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
+import com.example.ptfAttendanceSystem.batch.BatchData;
+import com.example.ptfAttendanceSystem.batch.BatchService;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
@@ -64,6 +67,9 @@ public class AdminRegistrationController {
     @Autowired
     private LateRequestRepository lateRequestRepository;
 
+    @Autowired
+    private BatchService batchService;
+
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
         try {
@@ -82,17 +88,16 @@ public class AdminRegistrationController {
             if (adminOpt.isPresent()) {
                 AdminModel adminModel = adminOpt.get();
 
-                // Generate a token for the admin
                 String token = UUID.randomUUID().toString();
-                adminModel.setToken(token); // Set the token in the admin model
-                adminService.updateAdminToken(adminModel); // Save the token in the database
+                adminModel.setToken(token);
+                adminService.updateAdminToken(adminModel);
 
                 ALoginResponseDto responseDto = new ALoginResponseDto(
                         adminModel.getId(),
                         adminModel.getEmail(),
                         adminModel.getName(),
                         adminModel.getToken(),
-//                        token, // Include the token in the response
+
                         "Login Successfully"
                 );
 
@@ -147,20 +152,20 @@ public class AdminRegistrationController {
     @PostMapping(path = "/forgot-password/{id}")
     public ResponseEntity<?> forgotPassword(@PathVariable Long id,@RequestBody ForgotPasswordDto forgotPasswordDto) {
         try {
-            // Validate request data
+
             if (!forgotPasswordDto.getNewPassword().equals(forgotPasswordDto.getConfirmPassword())) {
                 return new ResponseEntity<>("Passwords do not match", HttpStatus.BAD_REQUEST);
             }
 
-            // Check if user exists
+
             Optional<AdminModel> adminOptional = adminRepository.findByEmail(forgotPasswordDto.getEmail());
             if (adminOptional.isEmpty()) {
                 return new ResponseEntity<>("Admin not found with the provided email", HttpStatus.NOT_FOUND);
             }
 
-            // Update admin password
+
             AdminModel admin = adminOptional.get();
-            admin.setPassword(forgotPasswordDto.getNewPassword()); // Ensure password is securely hashed
+            admin.setPassword(forgotPasswordDto.getNewPassword());
             adminRepository.save(admin);
 
             return new ResponseEntity<>("Password updated successfully", HttpStatus.OK);
@@ -170,59 +175,7 @@ public class AdminRegistrationController {
         }
     }
 
-//    // Add method to generate QR code after scanning
-//    @GetMapping(path = "/generateQr")
-//    public ResponseEntity<?> generateQr(HttpServletResponse response) {
-//        try {
-//            String qrContent = UUID.randomUUID().toString(); // Generate unique content for each scan
-//            generateQrCode(qrContent, response);
-//            return new ResponseEntity<>("QR code generated successfully", HttpStatus.OK);
-//        } catch (WriterException | IOException e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Error generating QR code", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-//
-//    // Method to generate and write QR code to response
-//    private void generateQrCode(String content, HttpServletResponse response) throws WriterException, IOException {
-//        QRCodeWriter qrCodeWriter = new QRCodeWriter();
-//        BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);
-//
-//        // Set response headers for the image output
-//        response.setContentType("image/png");
-//        OutputStream out = response.getOutputStream();
-//        MatrixToImageWriter.writeToStream(bitMatrix, "PNG", out);
-//        out.flush();
-//        out.close();
-//    }
 
-
-//17/12/24 working with frontend
-//    // Add method to generate QR code with current date and time
-//    @GetMapping(path = "/generateQr")
-//    public ResponseEntity<?> generateQr() {
-//        try {
-//            // Get the current date and time
-//            LocalDateTime now = LocalDateTime.now();
-//            String formattedDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-//            String formattedTime = now.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-//
-//            // Create content for the QR code
-//            String qrContent = "date:" + formattedDate + "  time:" + formattedTime;
-//
-//            // Generate Base64 QR Code String
-//            String base64QRCode = qrCodeService.generateQRCodeAsString(qrContent);
-//
-//            // Return the Base64 string as the response
-//            return new ResponseEntity<>(base64QRCode, HttpStatus.OK);
-//        } catch (WriterException | IOException e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Error generating QR code", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
-
-//15/1/25
 
     @GetMapping(path = "/generateQr")
     public ResponseEntity<?> getQRCode() {
@@ -247,29 +200,9 @@ public class AdminRegistrationController {
     }
 
 
-
-
-
-//
-//    // Endpoint to retrieve the current QR code
-//    @GetMapping(path = "/generateQr")
-//    public ResponseEntity<?> getQRCode() {
-//        try {
-//            // Retrieve the pre-generated QR code
-//            String currentQRCode = qrCodeService.getCurrentQRCode();
-//            return new ResponseEntity<>(currentQRCode, HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Error retrieving QR code", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
-    // Method to generate and write QR code to response
     private void generateQrCode(String content, HttpServletResponse response) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
         BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);
-
-        // Set response headers for the image output
         response.setContentType("image/png");
         try (OutputStream out = response.getOutputStream()) {
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", out);
@@ -279,10 +212,7 @@ public class AdminRegistrationController {
     @PostMapping(path = "/scan")
     public ResponseEntity<?> handleScan(@RequestBody ScanDto scanDto) {
         try {
-            // Handle the scan logic here, such as saving to the database
-            adminService.handleScan(scanDto.getToken());  // Use the token or user ID to identify the scan
-
-            // Return a response indicating successful scan
+            adminService.handleScan(scanDto.getToken());
             return new ResponseEntity<>("Scan recorded successfully", HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -292,44 +222,6 @@ public class AdminRegistrationController {
 
 
 
-
-//    @GetMapping(path = "/generateQr")
-//    public ResponseEntity<?> getQRCode() {
-//        try {
-//            // Retrieve the pre-generated QR code
-//            String currentQRCode = qrCodeService.getCurrentQRCode();
-//            return new ResponseEntity<>(currentQRCode, HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Error retrieving QR code", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-//
-//    // Method to generate and write QR code to response
-//    private void generateQrCode(String content, HttpServletResponse response) throws WriterException, IOException {
-//        QRCodeWriter qrCodeWriter = new QRCodeWriter();
-//        BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);
-//
-//        // Set response headers for the image output
-//        response.setContentType("image/png");
-//        try (OutputStream out = response.getOutputStream()) {
-//            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", out);
-//        }
-//    }
-//
-//    @PostMapping(path = "/scan")
-//    public ResponseEntity<?> handleScan(@RequestBody ScanDto scanDto) {
-//        try {
-//            // Handle the scan logic here, such as saving to the database
-//            adminService.handleScan(scanDto.getToken());  // Use the token or user ID to identify the scan
-//
-//            // Return a response indicating successful scan
-//            return new ResponseEntity<>("Scan recorded successfully", HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Error handling scan", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
 
     @GetMapping("/getAllUsers")
     public ResponseEntity<List<UsersModel>> getAllUsers() {
@@ -382,29 +274,6 @@ public class AdminRegistrationController {
 
 
 
-
-
-
-
-
-//    // Fetch all leave requests for today
-//    @GetMapping("/getLeaveRequestsForToday")
-//    public ResponseEntity<?> getLeaveRequestsForToday() {
-//        try {
-//            List<LeaveRequestModel> leaveRequests = adminService.getLeaveRequestsForToday();
-//
-//            if (leaveRequests.isEmpty()) {
-//                return new ResponseEntity<>("No leave requests for today", HttpStatus.OK);
-//            }
-//
-//            return new ResponseEntity<>(leaveRequests, HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
-    // Approve leave request
     @PostMapping("/approveLeaveRequest/{leaveRequestId}")
     public ResponseEntity<?> approveLeaveRequest(@PathVariable Long leaveRequestId) {
         try {
@@ -415,7 +284,7 @@ public class AdminRegistrationController {
         }
     }
 
-    // Fetch leave requests based on status (PENDING, APPROVED, REJECTED)
+
     @GetMapping("/getLeaveRequestsByStatus")
     public ResponseEntity<?> getLeaveRequestsByStatus(@RequestParam LeaveRequestStatus status) {
         try {
@@ -434,7 +303,6 @@ public class AdminRegistrationController {
 
 
 
-    // Reject leave request
     @PostMapping("/rejectLeaveRequest/{leaveRequestId}")
     public ResponseEntity<?> rejectLeaveRequest(@PathVariable Long leaveRequestId) {
         try {
@@ -447,8 +315,6 @@ public class AdminRegistrationController {
 
 
 
-
-    // Fetch all late requests for today
     @GetMapping("/getLateRequestsForToday")
     public ResponseEntity<?> getLateRequestsForToday() {
         try {
@@ -465,7 +331,7 @@ public class AdminRegistrationController {
         }
     }
 
-    // Fetch late requests based on status (PENDING, APPROVED, REJECTED)
+
     @GetMapping("/getLateRequestsByStatus")
     public ResponseEntity<?> getLateRequestsByStatus(@RequestParam LateRequestStatus status) {
         try {
@@ -482,7 +348,7 @@ public class AdminRegistrationController {
         }
     }
 
-    // Approve late request
+
     @PostMapping("/approveLateRequest/{lateRequestId}")
     public ResponseEntity<?> approveLateRequest(@PathVariable Long lateRequestId) {
         try {
@@ -493,7 +359,7 @@ public class AdminRegistrationController {
         }
     }
 
-    // Reject late request
+
     @PostMapping("/rejectLateRequest/{lateRequestId}")
     public ResponseEntity<?> rejectLateRequest(@PathVariable Long lateRequestId) {
         try {
@@ -507,7 +373,6 @@ public class AdminRegistrationController {
 
 
 
-    // New method to get attendance for all users on the current date
     @GetMapping("/attendance/today")
     public ResponseEntity<?> getAllUserAttendanceToday() {
         LocalDate currentDate = LocalDate.now();
@@ -520,7 +385,6 @@ public class AdminRegistrationController {
     }
 
 
-    // Get attendance for all users on a particular date
     @GetMapping("/attendance/date/{date}")
     public ResponseEntity<?> getAllUserAttendance(@PathVariable String date) {
         LocalDate attendanceDate = LocalDate.parse(date);
@@ -533,7 +397,7 @@ public class AdminRegistrationController {
     }
 
 
-    // New method to get attendance between two dates
+
     @GetMapping("/date-range")
     public ResponseEntity<?> getAttendanceBetweenDates(@RequestParam String startDate, @RequestParam String endDate) {
         try {
@@ -555,7 +419,7 @@ public class AdminRegistrationController {
         }
     }
 
-    // New method to get a user's attendance for a particular month
+
     @GetMapping("/attendance/user/{userId}/month/{month}")
     public ResponseEntity<?> getUserAttendanceForMonth(@PathVariable Long userId, @PathVariable String month) {
         try {
@@ -575,7 +439,7 @@ public class AdminRegistrationController {
         }
     }
 
-    // New method to get a user's attendance between two specific dates
+
     @GetMapping("/attendance/userDate-range")
     public ResponseEntity<?> getUserAttendanceBetweenDates(@RequestParam Long userId, @RequestParam String startDate, @RequestParam String endDate) {
         try {
@@ -598,7 +462,6 @@ public class AdminRegistrationController {
         }
     }
 
-    // New endpoint for deleting a user
     @DeleteMapping(path = "/deleteUser/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
         try {
@@ -614,7 +477,7 @@ public class AdminRegistrationController {
         return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // New endpoint to delete attendance for a given month
+
     @DeleteMapping(path = "/deleteAttendance/{year}/{month}")
     public ResponseEntity<?> deleteAttendanceForMonth(@PathVariable int year, @PathVariable int month) {
         try {
@@ -654,6 +517,17 @@ public class AdminRegistrationController {
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+    // Add Batch
+    @PostMapping(path = "/batch/add")
+    public ResponseEntity<?> addBatch(@RequestBody BatchData batchData) {
+        return batchService.addBatch(batchData);
+    }
+
+    // Delete Batch
+    @DeleteMapping(path = "/batch/delete/{batch}")
+    public ResponseEntity<?> deleteBatch(@PathVariable("batch") String batch) {
+        return batchService.deleteBatch(batch);
     }
 
 
