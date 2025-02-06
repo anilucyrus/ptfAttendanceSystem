@@ -1,6 +1,7 @@
 package com.example.ptfAttendanceSystem.model;
 
 
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -11,27 +12,24 @@ public class UsersModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "userId")
     private Long userId;
 
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-
-    @Column(name = "batch")
-    private String batch;
-
+    @Column(name = "batch_id", nullable = false)
+    private Long batchId;
 
     @Column(name = "token")
     private String token;
 
-    @Column(name = "phoneNumber")
+    @Column(name = "phone_number", nullable = false)
     private String phoneNumber;
 
     public Long getUserId() {
@@ -66,12 +64,12 @@ public class UsersModel {
         this.email = email;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public String getToken() {

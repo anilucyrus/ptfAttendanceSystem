@@ -87,17 +87,13 @@ public class AdminService {
         System.out.println("New Token Generated: " + newToken);
     }
 
-
     public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails() {
         LocalDate currentDate = LocalDate.now();
         List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
 
         List<Map<String, Object>> leaveRequestList = new ArrayList<>();
-
         for (LeaveRequestModel leaveRequest : leaveRequests) {
-            UsersModel user = usersRepository.findById(leaveRequest.getUserId()).orElse(null);
-
-            if (user != null) {
+            usersRepository.findById(leaveRequest.getUserId()).ifPresent(user -> {
                 Map<String, Object> response = new HashMap<>();
                 response.put("id", leaveRequest.getId());
                 response.put("userId", leaveRequest.getUserId());
@@ -105,15 +101,13 @@ public class AdminService {
                 response.put("reason", leaveRequest.getReason());
                 response.put("fromDate", leaveRequest.getFromDate());
                 response.put("toDate", leaveRequest.getToDate());
-                response.put("name", user.getName());  // Include name
-                response.put("batch", user.getBatch()); // Include batch
-                response.put("numberOfDays",leaveRequest.getNumberOfDays());
-                response.put("status",leaveRequest.getStatus());
-
+                response.put("name", user.getName());
+                response.put("batchId", user.getBatchId());
+                response.put("numberOfDays", leaveRequest.getNumberOfDays());
+                response.put("status", leaveRequest.getStatus());
                 leaveRequestList.add(response);
-            }
+            });
         }
-
         return leaveRequestList;
     }
 
@@ -121,7 +115,6 @@ public class AdminService {
     public List<LeaveRequestModel> getLeaveRequestsByStatus(LeaveRequestStatus status) {
         return leaveRequestRepository.findByStatus(status);
     }
-
 
     public ResponseEntity<?> approveLeaveRequest(Long leaveRequestId) {
         Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);

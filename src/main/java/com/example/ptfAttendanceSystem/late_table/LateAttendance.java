@@ -1,5 +1,4 @@
 package com.example.ptfAttendanceSystem.late_table;
-
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -12,7 +11,7 @@ import java.time.LocalTime;
 @Data
 public class LateAttendance {
 
-   @Id
+    @Id
 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

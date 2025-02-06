@@ -2,7 +2,6 @@ package com.example.ptfAttendanceSystem.admin;
 
 
 import lombok.Data;
-
 @Data
 public class ARegistrationResponce {
 

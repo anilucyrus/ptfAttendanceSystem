@@ -4,7 +4,7 @@ package com.example.ptfAttendanceSystem.admin;
 
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
-import com.example.ptfAttendanceSystem.batch.BatchData;
+import com.example.ptfAttendanceSystem.batch.BatchModel;
 import com.example.ptfAttendanceSystem.batch.BatchService;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
@@ -253,26 +253,14 @@ public class AdminRegistrationController {
         }
     }
 
-
-    @GetMapping("/getLeaveRequestsForToday")
+    @GetMapping("/leave-requests/today")
     public ResponseEntity<?> getLeaveRequestsForToday() {
-        try {
-            List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails();
-
-            if (leaveRequests.isEmpty()) {
-                return new ResponseEntity<>("No leave requests for today", HttpStatus.OK);
-            }
-
-            return new ResponseEntity<>(leaveRequests, HttpStatus.OK);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails();
+        if (leaveRequests.isEmpty()) {
+            return ResponseEntity.ok("No leave requests for today");
         }
+        return ResponseEntity.ok(leaveRequests);
     }
-
-
-
-
 
     @PostMapping("/approveLeaveRequest/{leaveRequestId}")
     public ResponseEntity<?> approveLeaveRequest(@PathVariable Long leaveRequestId) {
@@ -283,7 +271,6 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @GetMapping("/getLeaveRequestsByStatus")
     public ResponseEntity<?> getLeaveRequestsByStatus(@RequestParam LeaveRequestStatus status) {
@@ -301,8 +288,6 @@ public class AdminRegistrationController {
         }
     }
 
-
-
     @PostMapping("/rejectLeaveRequest/{leaveRequestId}")
     public ResponseEntity<?> rejectLeaveRequest(@PathVariable Long leaveRequestId) {
         try {
@@ -312,8 +297,6 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 
     @GetMapping("/getLateRequestsForToday")
     public ResponseEntity<?> getLateRequestsForToday() {
@@ -518,17 +501,22 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    // Add Batch
-    @PostMapping(path = "/batch/add")
-    public ResponseEntity<?> addBatch(@RequestBody BatchData batchData) {
-        return batchService.addBatch(batchData);
+    @PostMapping(path = "/addBatch")
+    public ResponseEntity<?> addBatch(@RequestBody BatchModel batch) {
+        return new ResponseEntity<>(batchService.addBatch(batch), HttpStatus.CREATED);
     }
 
-    // Delete Batch
-    @DeleteMapping(path = "/batch/delete/{batch}")
-    public ResponseEntity<?> deleteBatch(@PathVariable("batch") String batch) {
-        return batchService.deleteBatch(batch);
+    @DeleteMapping(path = "/deleteBatch")
+    public ResponseEntity<?> deleteBatch(@RequestParam Long id) {
+        batchService.deleteBatch(id);
+        return new ResponseEntity<>("Batch deleted successfully", HttpStatus.OK);
     }
+
+    @GetMapping(path = "/getAllBatches")
+    public ResponseEntity<?> getAllBatches() {
+        return new ResponseEntity<>(batchService.getAllBatches(), HttpStatus.OK);
+    }
+
 
 
 }

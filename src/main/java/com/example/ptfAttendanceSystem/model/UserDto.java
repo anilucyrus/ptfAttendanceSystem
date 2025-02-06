@@ -1,15 +1,13 @@
 package com.example.ptfAttendanceSystem.model;
 
 import lombok.Data;
-import org.springframework.stereotype.Component;
 
 @Data
-@Component
 public class UserDto {
     private String name;
     private String password;
     private String email;
-    private String batch;
+    private Long batchId;
     private String phoneNumber;
 
 
@@ -37,12 +35,12 @@ public class UserDto {
         this.email = email;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public String getPhoneNumber() {
@@ -52,4 +50,6 @@ public class UserDto {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
+
+
 }

@@ -1,9 +1,7 @@
 package com.example.ptfAttendanceSystem.leave;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
+import lombok.Data;
 import java.time.LocalDate;
 
 @Data
@@ -11,13 +9,26 @@ public class LeaveRequestResponseDto {
     private Long id;
     private Long userId;
     private String name;
-    private String batch;
+    private Long batchId;
     private String leaveType;
     private String reason;
     private LocalDate fromDate;
     private LocalDate toDate;
     private int numberOfDays;
     private LeaveRequestStatus status;
+
+    public LeaveRequestResponseDto(Long id, Long userId, String name, Long batchId, String leaveType, String reason, LocalDate fromDate, LocalDate toDate, int numberOfDays, LeaveRequestStatus status) {
+        this.id = id;
+        this.userId = userId;
+        this.name = name;
+        this.batchId = batchId;
+        this.leaveType = leaveType;
+        this.reason = reason;
+        this.fromDate = fromDate;
+        this.toDate = toDate;
+        this.numberOfDays = numberOfDays;
+        this.status = status;
+    }
 
     public Long getId() {
         return id;
@@ -43,12 +54,12 @@ public class LeaveRequestResponseDto {
         this.name = name;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public String getLeaveType() {
@@ -96,19 +107,6 @@ public class LeaveRequestResponseDto {
     }
 
     public void setStatus(LeaveRequestStatus status) {
-        this.status = status;
-    }
-
-    public LeaveRequestResponseDto(Long id, Long userId, String name, String batch, String leaveType, String reason, LocalDate fromDate, LocalDate toDate, int numberOfDays, LeaveRequestStatus status) {
-        this.id = id;
-        this.userId = userId;
-        this.name = name;
-        this.batch = batch;
-        this.leaveType = leaveType;
-        this.reason = reason;
-        this.fromDate = fromDate;
-        this.toDate = toDate;
-        this.numberOfDays = numberOfDays;
         this.status = status;
     }
 }

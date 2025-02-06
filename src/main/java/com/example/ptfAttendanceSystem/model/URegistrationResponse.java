@@ -7,16 +7,8 @@ public class URegistrationResponse {
     private Long userId;
     private String name;
     private String email;
-    private String batch;
+    private Long batchId;
     private String phoneNumber;
-
-    public URegistrationResponse(Long userId, String name, String email, String batch, String phoneNumber) {
-        this.userId = userId;
-        this.name = name;
-        this.email = email;
-        this.batch = batch;
-        this.phoneNumber = phoneNumber;
-    }
 
     public Long getUserId() {
         return userId;
@@ -42,12 +34,12 @@ public class URegistrationResponse {
         this.email = email;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public String getPhoneNumber() {
@@ -56,5 +48,15 @@ public class URegistrationResponse {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public URegistrationResponse(Long userId, String name, String email, Long batchId, String phoneNumber) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.batchId = batchId;
+        this.phoneNumber = phoneNumber;
+
+
     }
 }

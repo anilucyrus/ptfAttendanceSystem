@@ -12,36 +12,34 @@ import java.time.LocalDate;
 public class LeaveRequestModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "leave_type")
-    private String leaveType; // Casual or Sick
+    @Column(name = "leave_type", nullable = false)
+    private String leaveType;
 
-    @Column(name = "reason")
+    @Column(name = "reason", nullable = false)
     private String reason;
 
-
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
     private String name;
 
+    @Column(name = "batch_id", nullable = false)
+    private Long batchId;
 
-    @Column(name = "batch")
-    private String batch;
-
-    @Column(name = "from_date")
+    @Column(name = "from_date", nullable = false)
     private LocalDate fromDate;
 
-    @Column(name = "to_date")
+    @Column(name = "to_date", nullable = false)
     private LocalDate toDate;
 
-    @Column(name = "number_of_days")
+    @Column(name = "number_of_days", nullable = false)
     private int numberOfDays;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private LeaveRequestStatus status = LeaveRequestStatus.PENDING;
 
     public Long getId() {
@@ -84,12 +82,12 @@ public class LeaveRequestModel {
         this.name = name;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public LocalDate getFromDate() {

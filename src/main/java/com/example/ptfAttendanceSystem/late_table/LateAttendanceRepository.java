@@ -13,3 +13,4 @@ public interface LateAttendanceRepository extends JpaRepository<LateAttendance, 
 
 
 }
+

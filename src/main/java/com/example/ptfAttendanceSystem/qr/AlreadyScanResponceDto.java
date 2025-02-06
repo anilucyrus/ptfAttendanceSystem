@@ -1,6 +1,7 @@
 package com.example.ptfAttendanceSystem.qr;
 
 import lombok.Data;
+import lombok.Data;
 
 @Data
 public class AlreadyScanResponceDto {

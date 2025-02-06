@@ -1,7 +1,6 @@
 package com.example.ptfAttendanceSystem.late;
 
 
-
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -12,14 +11,17 @@ import java.time.LocalDate;
 @Data
 public class LateRequestModel {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String name;
-    private String batch;
+
     private Long userId;
     private String reason;
     private LocalDate date;
+
+    @Column(name = "batch_id")
+    private Long batchId;
 
     @Enumerated(EnumType.STRING)
     private LateRequestStatus status = LateRequestStatus.PENDING;
@@ -30,22 +32,6 @@ public class LateRequestModel {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getBatch() {
-        return batch;
-    }
-
-    public void setBatch(String batch) {
-        this.batch = batch;
     }
 
     public Long getUserId() {
@@ -70,6 +56,14 @@ public class LateRequestModel {
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public Long getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public LateRequestStatus getStatus() {

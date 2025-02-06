@@ -1,21 +1,20 @@
 package com.example.ptfAttendanceSystem.model;
+
+
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+
 public class LoginResponseDto {
     private Long id;
     private String email;
     private String name;
-    private String batch;
+    private Long batchId;
     private String token;
     private String message;
-
-
-    public LoginResponseDto(Long id, String email, String name, String batch, String token, String message) {
-        this.id = id;
-        this.email = email;
-        this.name = name;
-        this.batch = batch;
-        this.token = token;
-        this.message = message;
-    }
 
     public Long getId() {
         return id;
@@ -41,12 +40,12 @@ public class LoginResponseDto {
         this.name = name;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
     }
 
     public String getToken() {
@@ -63,5 +62,17 @@ public class LoginResponseDto {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public LoginResponseDto(Long id, String email, String name, Long batchId, String token, String message) {
+        this.id = id;
+        this.email = email;
+        this.name = name;
+        this.batchId = batchId;
+        this.token = token;
+        this.message = message;
+
+
+
     }
 }

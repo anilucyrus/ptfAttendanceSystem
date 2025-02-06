@@ -1,6 +1,7 @@
 package com.example.ptfAttendanceSystem.leave;
 
 
+
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -29,3 +30,4 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequestModel,
 
 
 }
+

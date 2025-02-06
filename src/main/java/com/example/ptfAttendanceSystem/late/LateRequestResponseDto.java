@@ -11,16 +11,18 @@ public class LateRequestResponseDto {
     private Long userId;
     private String name;
     private String email;
-    private String batch;
+    private Long batchId;
+    private String batchName;
     private String reason;
     private LocalDate date;
     private String status;
 
-    public LateRequestResponseDto(Long userId, String name, String email, String batch, String reason, LocalDate date, String status) {
+    public LateRequestResponseDto(Long userId, String name, String email, Long batchId, String batchName, String reason, LocalDate date, String status) {
         this.userId = userId;
         this.name = name;
         this.email = email;
-        this.batch = batch;
+        this.batchId = batchId;
+        this.batchName = batchName;
         this.reason = reason;
         this.date = date;
         this.status = status;
@@ -50,12 +52,20 @@ public class LateRequestResponseDto {
         this.email = email;
     }
 
-    public String getBatch() {
-        return batch;
+    public Long getBatchId() {
+        return batchId;
     }
 
-    public void setBatch(String batch) {
-        this.batch = batch;
+    public void setBatchId(Long batchId) {
+        this.batchId = batchId;
+    }
+
+    public String getBatchName() {
+        return batchName;
+    }
+
+    public void setBatchName(String batchName) {
+        this.batchName = batchName;
     }
 
     public String getReason() {

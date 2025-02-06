@@ -2,7 +2,7 @@ package com.example.ptfAttendanceSystem.model;
 
 
 
-import com.example.ptfAttendanceSystem.leave.LeaveRequestStatus;
+
 
 import java.time.LocalDate;
 
