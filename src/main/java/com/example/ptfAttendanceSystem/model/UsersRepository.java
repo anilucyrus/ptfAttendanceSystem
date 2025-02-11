@@ -1,4 +1,5 @@
 package com.example.ptfAttendanceSystem.model;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,4 +12,5 @@ public interface UsersRepository extends JpaRepository<UsersModel, Long> {
     Optional<UsersModel> findByEmailAndPassword(String email, String password);
     Optional<UsersModel> findByToken(String token);
 }
+
 

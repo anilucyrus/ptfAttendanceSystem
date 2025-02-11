@@ -64,38 +64,12 @@ public class UserRegistrationController {
 
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody UserDto userDto) {
-        try {
-            return usersService.userRegistration(userDto);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
-        }
+        return usersService.userRegistration(userDto);
     }
 
     @PostMapping(path = "/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginDto loginDto) {
-        try {
-            Optional<UsersModel> user = usersService.findByEmailAndPassword(loginDto.getEmail(), loginDto.getPassword());
-            if (user.isPresent()) {
-                UsersModel userModel = user.get();
-                userModel.setToken(UUID.randomUUID().toString());
-                usersService.updateUserToken(userModel);
-                LoginResponseDto responseDto = new LoginResponseDto(
-                        userModel.getUserId(),
-                        userModel.getEmail(),
-                        userModel.getName(),
-                        userModel.getBatchId(),
-                        userModel.getToken(),
-                        "Login Successfully"
-                );
-                return ResponseEntity.accepted().body(responseDto);
-            } else {
-                return ResponseEntity.badRequest().body("No details found");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
-        }
+        return usersService.loginUser(loginDto);
     }
 
     @PostMapping(path = "/inScanQR")
@@ -259,17 +233,6 @@ public class UserRegistrationController {
         return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-
-
-    @PutMapping(path = "/update")
-    public ResponseEntity<?> updateUser(@RequestParam Long id, @RequestBody UserDto userDto) {
-        try {
-            return usersService.updateUser(id, userDto);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Something went wrong " + e.getMessage());
-        }
-    }
 
 
     @PostMapping(path = "/forgot-password")

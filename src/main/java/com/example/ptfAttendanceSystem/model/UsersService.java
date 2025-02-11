@@ -2,6 +2,7 @@ package com.example.ptfAttendanceSystem.model;
 
 
 
+
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.batch.BatchModel;
@@ -58,8 +59,23 @@ public class UsersService {
         this.batchRepository = batchRepository;
     }
 
-
     public ResponseEntity<?> userRegistration(UserDto userDto) {
+        // Validate required fields
+        if (userDto.getName() == null || userDto.getName().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Please enter your name.");
+        }
+        if (userDto.getEmail() == null || userDto.getEmail().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Please enter your email.");
+        }
+        if (userDto.getPassword() == null || userDto.getPassword().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Please enter your password.");
+        }
+        if (userDto.getBatchId() == null) {
+            return ResponseEntity.badRequest().body("Please select a batch.");
+        }
+        if (userDto.getPhoneNumber() == null || userDto.getPhoneNumber().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Please enter your phone number.");
+        }
         if (usersRepository.findByEmail(userDto.getEmail()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already registered");
         }
@@ -70,6 +86,7 @@ public class UsersService {
         user.setPassword(userDto.getPassword());
         user.setBatchId(userDto.getBatchId());
         user.setPhoneNumber(userDto.getPhoneNumber());
+
         UsersModel savedUser = usersRepository.save(user);
 
         if (!savedUser.getEmail().isEmpty()) {
@@ -78,13 +95,11 @@ public class UsersService {
             return ResponseEntity.badRequest().body("Email is required");
         }
 
-        URegistrationResponse response = new URegistrationResponse(
-                savedUser.getUserId(),
-                savedUser.getName(),
-                savedUser.getEmail(),
-                savedUser.getBatchId(),
-                savedUser.getPhoneNumber()
-        );
+        // Fetch batch details
+        BatchModel batch = batchRepository.findById(savedUser.getBatchId()).orElse(null);
+
+        // Create response
+        URegistrationResponse response = UserMapper.toResponse(savedUser, batch);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -93,9 +108,38 @@ public class UsersService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
         message.setSubject("Registration Confirmation");
-        message.setText("Thank you for registering PTF application!");
+        message.setText("Thank you for registering for the PTF application!");
         mailSender.send(message);
     }
+
+
+    public ResponseEntity<?> loginUser(LoginDto loginDto) {
+        Optional<UsersModel> userOpt = usersRepository.findByEmailAndPassword(loginDto.getEmail(), loginDto.getPassword());
+
+        if (userOpt.isPresent()) {
+            UsersModel userModel = userOpt.get();
+            userModel.setToken(UUID.randomUUID().toString());
+            usersRepository.save(userModel);
+
+            // Fetch batch details
+            BatchModel batch = batchRepository.findById(userModel.getBatchId()).orElse(null);
+
+            LoginResponseDto responseDto = new LoginResponseDto(
+                    userModel.getUserId(),
+                    userModel.getEmail(),
+                    userModel.getName(),
+                    userModel.getBatchId(),
+                    batch != null ? batch.getBatchName() : null,
+                    userModel.getToken(),
+                    "Login Successfully"
+            );
+
+            return ResponseEntity.accepted().body(responseDto);
+        } else {
+            return ResponseEntity.badRequest().body("No details found");
+        }
+    }
+
     public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
         Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
         if (!usersModelOptional.isPresent()) {
@@ -284,29 +328,6 @@ public class UsersService {
     }
 
 
-    public ResponseEntity<?> updateUser(Long id, UserDto userDto) {
-        Optional<UsersModel> userOptional = usersRepository.findById(id);
-        if (!userOptional.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-
-        UsersModel user = userOptional.get();
-        user.setName(userDto.getName());
-        user.setEmail(userDto.getEmail());
-        user.setPassword(userDto.getPassword());
-        user.setPhoneNumber(userDto.getPhoneNumber());
-
-        // Ensure the batch ID is valid before updating
-        if (!batchRepository.existsById(userDto.getBatchId())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid Batch ID");
-        }
-        user.setBatchId(userDto.getBatchId());
-
-        UsersModel updatedUser = usersRepository.save(user);
-        URegistrationResponse response = UserMapper.toResponse(updatedUser);
-
-        return ResponseEntity.ok(response);
-    }
 
     public ResponseEntity<?> forgotPassword(ForgotPasswordDto forgotPasswordDto) {
         Optional<UsersModel> userOptional = usersRepository.findByEmail(forgotPasswordDto.getEmail());

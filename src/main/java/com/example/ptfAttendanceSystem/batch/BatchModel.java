@@ -1,6 +1,9 @@
 package com.example.ptfAttendanceSystem.batch;
 
 
+
+
+import com.example.ptfAttendanceSystem.batchType.BatchTypeModel;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -23,6 +26,11 @@ public class BatchModel {
 
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
+
+    @ManyToOne
+    @JoinColumn(name = "batch_type_id", nullable = false)
+    private BatchTypeModel batchType;
+
 
     public Long getId() {
         return id;
@@ -54,5 +62,13 @@ public class BatchModel {
 
     public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
+    }
+
+    public BatchTypeModel getBatchType() {
+        return batchType;
+    }
+
+    public void setBatchType(BatchTypeModel batchType) {
+        this.batchType = batchType;
     }
 }

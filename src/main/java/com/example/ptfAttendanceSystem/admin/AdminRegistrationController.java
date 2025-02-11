@@ -2,10 +2,13 @@ package com.example.ptfAttendanceSystem.admin;
 
 
 
+
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.batch.BatchModel;
 import com.example.ptfAttendanceSystem.batch.BatchService;
+import com.example.ptfAttendanceSystem.batchType.BatchTypeModel;
+import com.example.ptfAttendanceSystem.batchType.BatchTypeService;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
@@ -23,11 +26,13 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -69,6 +74,9 @@ public class AdminRegistrationController {
 
     @Autowired
     private BatchService batchService;
+
+    @Autowired
+    private BatchTypeService batchTypeService;
 
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
@@ -501,21 +509,85 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
     @PostMapping(path = "/addBatch")
-    public ResponseEntity<?> addBatch(@RequestBody BatchModel batch) {
-        return new ResponseEntity<>(batchService.addBatch(batch), HttpStatus.CREATED);
+    public ResponseEntity<?> addBatch(@RequestBody BatchModel batch, @RequestParam Long batchTypeId) {
+        try {
+            return new ResponseEntity<>(batchService.addBatch(batch, batchTypeId), HttpStatus.CREATED);
+        } catch (ResponseStatusException ex) {
+            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+        }
+    }
+
+    @PutMapping(path = "/updateBatch")
+    public ResponseEntity<?> updateBatch(@RequestParam Long id, @RequestBody BatchModel batch, @RequestParam Long batchTypeId) {
+        try {
+            return new ResponseEntity<>(batchService.updateBatch(id, batch, batchTypeId), HttpStatus.OK);
+        } catch (ResponseStatusException ex) {
+            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+        }
     }
 
     @DeleteMapping(path = "/deleteBatch")
     public ResponseEntity<?> deleteBatch(@RequestParam Long id) {
-        batchService.deleteBatch(id);
-        return new ResponseEntity<>("Batch deleted successfully", HttpStatus.OK);
+        try {
+            batchService.deleteBatch(id);
+            return new ResponseEntity<>("Batch deleted successfully", HttpStatus.OK);
+        } catch (ResponseStatusException ex) {
+            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+        }
     }
 
     @GetMapping(path = "/getAllBatches")
     public ResponseEntity<?> getAllBatches() {
-        return new ResponseEntity<>(batchService.getAllBatches(), HttpStatus.OK);
+        try {
+            return new ResponseEntity<>(batchService.getAllBatches(), HttpStatus.OK);
+        } catch (ResponseStatusException ex) {
+            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+        }
     }
+
+
+
+
+    @PostMapping(path = "/addBatchType")
+    public ResponseEntity<?> addBatchType(@RequestBody BatchTypeModel batch_type) {
+        return new ResponseEntity<>(batchTypeService.addBatchType(batch_type), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping(path = "/deleteBatchType")
+    public ResponseEntity<?> deleteBatchType(@RequestParam Long id) {
+        try {
+            batchTypeService.deleteBatchType(id);
+            return new ResponseEntity<>("Batch Type deleted successfully", HttpStatus.OK);
+        } catch (EntityNotFoundException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+    @GetMapping(path = "/getAllBatchType")
+    public ResponseEntity<?> getAllBatchType() {
+        return batchTypeService.getAllBatchType();
+    }
+
+
+
+    @PutMapping(path = "/updateBatchType")
+    public ResponseEntity<?> updateBatchType(@RequestBody BatchTypeModel batchType) {
+        if (batchType.getId() == null) {
+            return new ResponseEntity<>("Batch Type ID is required for update", HttpStatus.BAD_REQUEST);
+        }
+        try {
+            return new ResponseEntity<>(batchTypeService.updateBatchType(batchType), HttpStatus.OK);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+
+
+
+
+
 
 
 
