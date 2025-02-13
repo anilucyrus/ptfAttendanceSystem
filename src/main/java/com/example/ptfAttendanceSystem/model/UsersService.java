@@ -2,11 +2,12 @@ package com.example.ptfAttendanceSystem.model;
 
 
 
-
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.batch.BatchModel;
 import com.example.ptfAttendanceSystem.batch.BatchRepository;
+import com.example.ptfAttendanceSystem.batchType.BatchTypeModel;
+import com.example.ptfAttendanceSystem.batchType.BatchTypeRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
@@ -46,6 +47,11 @@ public class UsersService {
 
     @Autowired
     private QRCodeService qrCodeService;
+
+
+
+    @Autowired
+    private BatchTypeRepository batchTypeRepository;
 
     @Autowired
     private LateAttendanceRepository lateAttendanceRepository;
@@ -140,6 +146,8 @@ public class UsersService {
         }
     }
 
+
+
     public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
         Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
         if (!usersModelOptional.isPresent()) {
@@ -154,13 +162,28 @@ public class UsersService {
         }
 
         BatchModel batch = batchOptional.get();
+        Optional<BatchTypeModel> batchTypeOptional = batchTypeRepository.findById(batch.getBatchType().getId());
+
+        if (!batchTypeOptional.isPresent()) {
+            return new ResponseEntity<>("Batch type not found", HttpStatus.NOT_FOUND);
+        }
+
+        BatchTypeModel batchType = batchTypeOptional.get();
+
         String typeData = inScanDto.getType();
 
         try {
+            // Check for the batch type (Custom or Regular) and handle accordingly
             if ("in".equalsIgnoreCase(typeData)) {
-                return handleScanIn(userId, usersModel.getName(), batch, inScanDto);
+                if ("Custom".equalsIgnoreCase(batchType.getBatchType())) {
+                    return handleCustomBatchScanIn(userId, usersModel.getName(), batch, batchType, inScanDto);
+                } else if ("Regular".equalsIgnoreCase(batchType.getBatchType())) {
+                    return handleRegularBatchScanIn(userId, usersModel.getName(), batch, inScanDto);
+                } else {
+                    return new ResponseEntity<>("Invalid Batch Type", HttpStatus.BAD_REQUEST);
+                }
             } else if ("out".equalsIgnoreCase(typeData)) {
-                return handleScanOut(userId, inScanDto);
+                return handleScanOut(userId, inScanDto, batchType);
             } else {
                 return new ResponseEntity<>("Scan Type is not mentioned", HttpStatus.BAD_REQUEST);
             }
@@ -169,24 +192,22 @@ public class UsersService {
         }
     }
 
-    private ResponseEntity<?> handleScanIn(Long userId, String userName, BatchModel batch, InScanDto inScanDto) {
+
+    private ResponseEntity<?> handleCustomBatchScanIn(Long userId, String userName, BatchModel batch, BatchTypeModel batchType, InScanDto inScanDto) {
         LocalDate currentDate = LocalDate.now();
         if (!currentDate.equals(inScanDto.getPresentDate())) {
             return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
         }
-
 
         Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
         if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
             return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
         }
 
-
         Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findByUserIdAndDate(userId, currentDate);
         if (lateRequestOptional.isPresent() && lateRequestOptional.get().getStatus() == LateRequestStatus.APPROVED) {
-            return markApprovedLateAttendance(userId, userName, batch, currentDate);
+            return markApprovedLateAttendance(userId, userName, batch, currentDate, batchType);
         }
-
 
         List<LateAttendance> lateRecords = lateAttendanceRepository.findByUserId(userId);
         if (lateRecords.size() >= 4) {
@@ -210,12 +231,64 @@ public class UsersService {
             saveLateUser(userId, userName, batch.getBatchName(), inScanDto, "Late");
         }
 
-        return new ResponseEntity<>(isLate ? "Late Scan In Recorded" : "Scan In Successful", HttpStatus.OK);
+        return new ResponseEntity<>(isLate ? "Late Attendance Marked" : "Scan In Successful", HttpStatus.OK);
     }
 
-    private ResponseEntity<?> markApprovedLateAttendance(Long userId, String userName, BatchModel batch, LocalDate currentDate) {
-        LocalTime allowedTime = batch.getStartTime().plusMinutes(30);
 
+
+    private ResponseEntity<?> handleRegularBatchScanIn(Long userId, String userName, BatchModel batch, InScanDto inScanDto) {
+        LocalDate currentDate = LocalDate.now();
+        if (!currentDate.equals(inScanDto.getPresentDate())) {
+            return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
+        if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
+            return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
+        }
+        LocalTime allowedTime = batch.getStartTime().plusMinutes(01);
+        boolean isLate = inScanDto.getPresentTime().isAfter(allowedTime);
+
+        Attendance attendance = new Attendance();
+        attendance.setUserId(userId);
+        attendance.setUserName(userName);
+        attendance.setBatchType(batch.getBatchName());
+        attendance.setAttendanceDate(currentDate);
+        attendance.setScanInTime(inScanDto.getPresentTime());
+        attendance.setStatus(isLate ? "Late" : "Punctual");
+        attendanceRepository.save(attendance);
+
+        if (isLate) {
+            saveLateUser(userId, userName, batch.getBatchName(), inScanDto, "Late");
+        }
+
+        return new ResponseEntity<>(isLate ? "Late Attendance Marked" : "Scan In Successful", HttpStatus.OK);
+    }
+
+
+
+
+
+
+    private ResponseEntity<?> markApprovedLateAttendance(Long userId, String userName, BatchModel batch, LocalDate currentDate, BatchTypeModel batchType) {
+        // Handle custom or regular batch differently
+        if ("Regular".equalsIgnoreCase(batchType.getBatchType())) {
+            // Handle for Regular batch type
+            LocalTime allowedTime = batch.getStartTime().plusMinutes(30);
+            Attendance attendance = new Attendance();
+            attendance.setUserId(userId);
+            attendance.setUserName(userName);
+            attendance.setBatchType(batch.getBatchName());
+            attendance.setAttendanceDate(currentDate);
+            attendance.setScanInTime(allowedTime);
+            attendance.setStatus("Punctual");
+
+            attendanceRepository.save(attendance);
+            return new ResponseEntity<>("Scan In Successful (Late Request Approved for Regular Batch)", HttpStatus.OK);
+        }
+
+        // Handle for Custom batch type
+        LocalTime allowedTime = batch.getStartTime().plusMinutes(10); // For custom batch, assume 10 minutes grace
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
         attendance.setUserName(userName);
@@ -225,7 +298,7 @@ public class UsersService {
         attendance.setStatus("Punctual");
 
         attendanceRepository.save(attendance);
-        return new ResponseEntity<>("Scan In Successful (Late Request Approved)", HttpStatus.OK);
+        return new ResponseEntity<>("Scan In Successful (Late Request Approved for Custom Batch)", HttpStatus.OK);
     }
 
     private void saveLateUser(Long userId, String userName, String batchType, InScanDto inScanDto, String status) {
@@ -241,7 +314,7 @@ public class UsersService {
         lateAttendanceRepository.save(lateAttendance);
     }
 
-    private ResponseEntity<?> handleScanOut(Long userId, InScanDto inScanDto) {
+    private ResponseEntity<?> handleScanOut(Long userId, InScanDto inScanDto, BatchTypeModel batchType) {
         LocalDate currentDate = LocalDate.now();
         if (!currentDate.equals(inScanDto.getPresentDate())) {
             return new ResponseEntity<>("Scan Out Date is not correct", HttpStatus.BAD_REQUEST);
@@ -258,6 +331,158 @@ public class UsersService {
 
         return new ResponseEntity<>("Scan Out Successful", HttpStatus.OK);
     }
+
+
+
+
+
+//
+//
+//
+//    public ResponseEntity<?> scanInAndOut(Long userId, InScanDto inScanDto) {
+//        Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
+//        if (!usersModelOptional.isPresent()) {
+//            return new ResponseEntity<>("Invalid UserId", HttpStatus.NOT_FOUND);
+//        }
+//
+//        UsersModel usersModel = usersModelOptional.get();
+//        Optional<BatchModel> batchOptional = batchRepository.findById(usersModel.getBatchId());
+//
+//        if (!batchOptional.isPresent()) {
+//            return new ResponseEntity<>("Invalid Batch ID", HttpStatus.NOT_FOUND);
+//        }
+//
+//        BatchModel batch = batchOptional.get();
+//        Optional<BatchTypeModel> batchTypeOptional = batchTypeRepository.findById(batch.getBatchType().getId());
+//
+//        if (!batchTypeOptional.isPresent()) {
+//            return new ResponseEntity<>("Batch type not found", HttpStatus.NOT_FOUND);
+//        }
+//
+//        BatchTypeModel batchType = batchTypeOptional.get();
+//
+//        String typeData = inScanDto.getType();
+//
+//        try {
+//            // Check for the batch type (Custom or Regular) and handle accordingly
+//            if ("in".equalsIgnoreCase(typeData)) {
+//                return handleScanIn(userId, usersModel.getName(), batch, batchType, inScanDto);
+//            } else if ("out".equalsIgnoreCase(typeData)) {
+//                return handleScanOut(userId, inScanDto, batchType);
+//            } else {
+//                return new ResponseEntity<>("Scan Type is not mentioned", HttpStatus.BAD_REQUEST);
+//            }
+//        } finally {
+//            qrCodeService.regenerateQRCode();
+//        }
+//    }
+//
+//    private ResponseEntity<?> handleScanIn(Long userId, String userName, BatchModel batch, BatchTypeModel batchType, InScanDto inScanDto) {
+//        LocalDate currentDate = LocalDate.now();
+//        if (!currentDate.equals(inScanDto.getPresentDate())) {
+//            return new ResponseEntity<>("Current date is not correct", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        Optional<Attendance> existingAttendance = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
+//        if (existingAttendance.isPresent() && existingAttendance.get().getScanInTime() != null) {
+//            return new ResponseEntity<>("User has already scanned in today", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findByUserIdAndDate(userId, currentDate);
+//        if (lateRequestOptional.isPresent() && lateRequestOptional.get().getStatus() == LateRequestStatus.APPROVED) {
+//            return markApprovedLateAttendance(userId, userName, batch, currentDate, batchType);
+//        }
+//
+//        List<LateAttendance> lateRecords = lateAttendanceRepository.findByUserId(userId);
+//        if (lateRecords.size() >= 4) {
+//            lateAttendanceRepository.deleteAll(lateRecords);
+//            return new ResponseEntity<>("Attendance not marked. You have been marked as leave due to 4 late attendances.", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        LocalTime allowedTime = batch.getStartTime().plusMinutes(10);
+//        boolean isLate = inScanDto.getPresentTime().isAfter(allowedTime);
+//
+//        Attendance attendance = new Attendance();
+//        attendance.setUserId(userId);
+//        attendance.setUserName(userName);
+//        attendance.setBatchType(batch.getBatchName());
+//        attendance.setAttendanceDate(currentDate);
+//        attendance.setScanInTime(inScanDto.getPresentTime());
+//        attendance.setStatus(isLate ? "Late" : "Punctual");
+//        attendanceRepository.save(attendance);
+//
+//        if (isLate) {
+//            saveLateUser(userId, userName, batch.getBatchName(), inScanDto, "Late");
+//        }
+//
+//        return new ResponseEntity<>(isLate ? "Late Scan In Recorded" : "Scan In Successful", HttpStatus.OK);
+//    }
+//
+//    private ResponseEntity<?> markApprovedLateAttendance(Long userId, String userName, BatchModel batch, LocalDate currentDate, BatchTypeModel batchType) {
+//        // Handle custom or regular batch differently
+//        if ("Regular".equalsIgnoreCase(batchType.getBatchType())) {
+//            // Handle for Regular batch type
+//            LocalTime allowedTime = batch.getStartTime().plusMinutes(30);
+//            Attendance attendance = new Attendance();
+//            attendance.setUserId(userId);
+//            attendance.setUserName(userName);
+//            attendance.setBatchType(batch.getBatchName());
+//            attendance.setAttendanceDate(currentDate);
+//            attendance.setScanInTime(allowedTime);
+//            attendance.setStatus("Punctual");
+//
+//            attendanceRepository.save(attendance);
+//            return new ResponseEntity<>("Scan In Successful (Late Request Approved for Regular Batch)", HttpStatus.OK);
+//        }
+//
+//        // Handle for Custom batch type
+//        LocalTime allowedTime = batch.getStartTime().plusMinutes(10); // For custom batch, assume 10 minutes grace
+//        Attendance attendance = new Attendance();
+//        attendance.setUserId(userId);
+//        attendance.setUserName(userName);
+//        attendance.setBatchType(batch.getBatchName());
+//        attendance.setAttendanceDate(currentDate);
+//        attendance.setScanInTime(allowedTime);
+//        attendance.setStatus("Punctual");
+//
+//        attendanceRepository.save(attendance);
+//        return new ResponseEntity<>("Scan In Successful (Late Request Approved for Custom Batch)", HttpStatus.OK);
+//    }
+//
+//    private void saveLateUser(Long userId, String userName, String batchType, InScanDto inScanDto, String status) {
+//        LateAttendance lateAttendance = new LateAttendance();
+//        lateAttendance.setUserId(userId);
+//        lateAttendance.setUserName(userName);
+//        lateAttendance.setBatchType(batchType);
+//        lateAttendance.setAttendanceDate(inScanDto.getPresentDate());
+//        lateAttendance.setScanInTime(inScanDto.getPresentTime());
+//        lateAttendance.setReasonForLateness("Arrived after allowed time");
+//        lateAttendance.setStatus(status);
+//
+//        lateAttendanceRepository.save(lateAttendance);
+//    }
+//
+//    private ResponseEntity<?> handleScanOut(Long userId, InScanDto inScanDto, BatchTypeModel batchType) {
+//        LocalDate currentDate = LocalDate.now();
+//        if (!currentDate.equals(inScanDto.getPresentDate())) {
+//            return new ResponseEntity<>("Scan Out Date is not correct", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        Optional<Attendance> attendanceOptional = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
+//        if (!attendanceOptional.isPresent() || attendanceOptional.get().getScanInTime() == null) {
+//            return new ResponseEntity<>("User must scan in before scanning out", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        Attendance attendance = attendanceOptional.get();
+//        attendance.setScanOutTime(inScanDto.getPresentTime());
+//        attendanceRepository.save(attendance);
+//
+//        return new ResponseEntity<>("Scan Out Successful", HttpStatus.OK);
+//    }
+//
+//
+//
+
 
     public List<Attendance> getAllAttendanceByDate(LocalDate date) {
         return attendanceRepository.findByAttendanceDate(date);
