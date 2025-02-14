@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 @RestController
 @CrossOrigin
 @RequestMapping(path = "/AdminReg")
@@ -365,14 +367,22 @@ public class AdminRegistrationController {
 
 
     @GetMapping("/attendance/today")
-    public ResponseEntity<?> getAllUserAttendanceToday() {
+    public ResponseEntity<?> getAllUserAttendanceToday(@RequestParam Long batchId) {
         LocalDate currentDate = LocalDate.now();
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
-        if (allAttendance.isEmpty()) {
+        // Filter attendance records by batch ID
+        List<Attendance> filteredAttendance = allAttendance.stream()
+                .filter(attendance -> {
+                    Optional<UsersModel> user = usersRepository.findById(attendance.getUserId());
+                    return user.isPresent() && user.get().getBatchId().equals(batchId);
+                })
+                .collect(Collectors.toList());
+
+        if (filteredAttendance.isEmpty()) {
             return new ResponseEntity<>("No attendance records found for today", HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<>(allAttendance, HttpStatus.OK);
+        return new ResponseEntity<>(filteredAttendance, HttpStatus.OK);
     }
 
 
@@ -514,9 +524,10 @@ public class AdminRegistrationController {
     @PostMapping(path = "/addBatch")
     public ResponseEntity<?> addBatch(@RequestBody BatchModel batch, @RequestParam Long batchTypeId) {
         try {
-            return new ResponseEntity<>(batchService.addBatch(batch, batchTypeId), HttpStatus.CREATED);
+            BatchModel createdBatch = batchService.addBatch(batch, batchTypeId);
+            return new ResponseEntity<>(createdBatch, HttpStatus.CREATED);
         } catch (ResponseStatusException ex) {
-            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
         }
     }
 

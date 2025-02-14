@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class BatchTypeService {
@@ -17,8 +18,13 @@ public class BatchTypeService {
     @Autowired
     private BatchTypeRepository batchTypeRepository;
 
-    public BatchTypeModel addBatchType(BatchTypeModel batchType) {
-        return batchTypeRepository.save(batchType);
+
+    public String addBatchType(BatchTypeModel batchType) {
+        if (batchTypeRepository.findByBatchType(batchType.getBatchType()).isPresent()) {
+            return "Batch type already exists.";
+        }
+        batchTypeRepository.save(batchType);
+        return "Batch type added successfully.";
     }
 
     public void deleteBatchType(Long id) {
