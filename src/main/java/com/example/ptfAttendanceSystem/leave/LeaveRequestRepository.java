@@ -28,6 +28,6 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequestModel,
     @Query("SELECT COUNT(l) > 0 FROM LeaveRequestModel l WHERE l.userId = :userId AND l.fromDate <= :toDate AND l.toDate >= :fromDate")
     boolean existsByUserIdAndFromDateLessThanEqualAndToDateGreaterThanEqual(@Param("userId") Long userId, @Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
 
-
+    List<LeaveRequestModel> findByFromDateAndBatchId(LocalDate fromDate, Long batchId);
 }
 

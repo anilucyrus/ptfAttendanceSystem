@@ -86,10 +86,48 @@ public class AdminService {
         qrCodeService.setStatusFlag(1);
         System.out.println("New Token Generated: " + newToken);
     }
+//
+//    public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails() {
+//        LocalDate currentDate = LocalDate.now();
+//        List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
+//
+//        List<Map<String, Object>> leaveRequestList = new ArrayList<>();
+//        for (LeaveRequestModel leaveRequest : leaveRequests) {
+//            usersRepository.findById(leaveRequest.getUserId()).ifPresent(user -> {
+//                Map<String, Object> response = new HashMap<>();
+//                response.put("id", leaveRequest.getId());
+//                response.put("userId", leaveRequest.getUserId());
+//                response.put("leaveType", leaveRequest.getLeaveType());
+//                response.put("reason", leaveRequest.getReason());
+//                response.put("fromDate", leaveRequest.getFromDate());
+//                response.put("toDate", leaveRequest.getToDate());
+//                response.put("name", user.getName());
+//                response.put("batchId", user.getBatchId());
+//                response.put("numberOfDays", leaveRequest.getNumberOfDays());
+//                response.put("status", leaveRequest.getStatus());
+//                leaveRequestList.add(response);
+//            });
+//        }
+//        return leaveRequestList;
+//    }
 
-    public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails() {
+
+
+
+    // Updated method with batchId filtering
+    public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails(Long batchId) {
         LocalDate currentDate = LocalDate.now();
-        List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
+
+        // Fetch leave requests for today
+        List<LeaveRequestModel> leaveRequests;
+
+        if (batchId != null) {
+            // If batchId is provided, filter leave requests by batchId
+            leaveRequests = leaveRequestRepository.findByFromDateAndBatchId(currentDate, batchId);
+        } else {
+            // If no batchId is provided, get all leave requests for today
+            leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
+        }
 
         List<Map<String, Object>> leaveRequestList = new ArrayList<>();
         for (LeaveRequestModel leaveRequest : leaveRequests) {
@@ -204,15 +242,25 @@ public class AdminService {
 
 
 
-
-
-
-
-
-    public List<LateRequestModel> getLateRequestsForToday() {
+    public List<LateRequestModel> getLateRequestsForToday(Long batchId) {
         LocalDate currentDate = LocalDate.now();
-        return lateRequestRepository.Date(currentDate);
+
+        // If batchId is null, fetch all late requests for the current date.
+        if (batchId != null) {
+            return lateRequestRepository.findByDateAndBatchId(currentDate, batchId);
+        } else {
+            return lateRequestRepository.findByDate(currentDate);
+        }
     }
+
+
+
+//
+//
+//    public List<LateRequestModel> getLateRequestsForToday() {
+//        LocalDate currentDate = LocalDate.now();
+//        return lateRequestRepository.Date(currentDate);
+//    }
 
 
     public List<LateRequestModel> getLateRequestsByStatus(LateRequestStatus status) {

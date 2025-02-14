@@ -15,10 +15,7 @@ import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestStatus;
-import com.example.ptfAttendanceSystem.model.ForgotPasswordDto;
-import com.example.ptfAttendanceSystem.model.UsersModel;
-import com.example.ptfAttendanceSystem.model.UsersRepository;
-import com.example.ptfAttendanceSystem.model.UsersService;
+import com.example.ptfAttendanceSystem.model.*;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import com.example.ptfAttendanceSystem.qr.ScanDto;
 import com.google.zxing.BarcodeFormat;
@@ -38,10 +35,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -233,19 +227,28 @@ public class AdminRegistrationController {
 
 
 
+//    @GetMapping("/getAllUsers")
+//    public ResponseEntity<List<UsersModel>> getAllUsers() {
+//        try {
+//            List<UsersModel> users = usersService.getAllUsers();
+//            return new ResponseEntity<>(users, HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+
     @GetMapping("/getAllUsers")
-    public ResponseEntity<List<UsersModel>> getAllUsers() {
+    public ResponseEntity<List<GetAllUsersDTO>> getAllUsers() {
         try {
-            List<UsersModel> users = usersService.getAllUsers();
+            List<GetAllUsersDTO> users = usersService.getAllUsers();
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(Collections.emptyList(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
-
 
 
     @GetMapping("/get/{id}")
@@ -263,14 +266,25 @@ public class AdminRegistrationController {
         }
     }
 
+//    @GetMapping("/leave-requests/today")
+//    public ResponseEntity<?> getLeaveRequestsForToday() {
+//        List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails();
+//        if (leaveRequests.isEmpty()) {
+//            return ResponseEntity.ok("No leave requests for today");
+//        }
+//        return ResponseEntity.ok(leaveRequests);
+//    }
+
     @GetMapping("/leave-requests/today")
-    public ResponseEntity<?> getLeaveRequestsForToday() {
-        List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails();
+    public ResponseEntity<?> getLeaveRequestsForToday(
+            @RequestParam(required = false) Long batchId) {  // batchId is optional
+        List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails(batchId);
         if (leaveRequests.isEmpty()) {
             return ResponseEntity.ok("No leave requests for today");
         }
         return ResponseEntity.ok(leaveRequests);
     }
+
 
     @PostMapping("/approveLeaveRequest/{leaveRequestId}")
     public ResponseEntity<?> approveLeaveRequest(@PathVariable Long leaveRequestId) {
@@ -308,10 +322,44 @@ public class AdminRegistrationController {
         }
     }
 
+//    @GetMapping("/getLateRequestsForToday")
+//    public ResponseEntity<?> getLateRequestsForToday() {
+//        try {
+//            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday();
+//
+//            if (lateRequests.isEmpty()) {
+//                return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
+//            }
+//
+//            return new ResponseEntity<>(lateRequests, HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+
+//    @GetMapping("/getLateRequestsForToday")
+//    public ResponseEntity<?> getLateRequestsForToday(@RequestParam(required = false) Long batchId) {
+//        try {
+//            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday(batchId);
+//
+//            if (lateRequests.isEmpty()) {
+//                return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
+//            }
+//
+//            return new ResponseEntity<>(lateRequests, HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+
     @GetMapping("/getLateRequestsForToday")
-    public ResponseEntity<?> getLateRequestsForToday() {
+    public ResponseEntity<?> getLateRequestsForToday(@RequestParam(required = false) Long batchId) {
         try {
-            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday();
+            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday(batchId);
 
             if (lateRequests.isEmpty()) {
                 return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
@@ -323,7 +371,6 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 
     @GetMapping("/getLateRequestsByStatus")
     public ResponseEntity<?> getLateRequestsByStatus(@RequestParam LateRequestStatus status) {

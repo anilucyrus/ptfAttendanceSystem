@@ -27,6 +27,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 
@@ -514,9 +515,26 @@ public class UsersService {
     public void updateUserToken(UsersModel usersModel) {
         usersRepository.save(usersModel);
     }
+//
+//    public List<UsersModel> getAllUsers() {
+//        return usersRepository.findAll();
+//    }
 
-    public List<UsersModel> getAllUsers() {
-        return usersRepository.findAll();
+
+    public List<GetAllUsersDTO> getAllUsers() {
+        List<UsersModel> users = usersRepository.findAll();
+        return users.stream().map(user -> {
+            BatchModel batch = batchRepository.findById(user.getBatchId()).orElse(null);
+            String batchName = (batch != null) ? batch.getBatchName() : "Unknown";
+            return new GetAllUsersDTO(
+                    user.getUserId(),
+                    user.getName(),
+                    user.getEmail(),
+                    user.getPhoneNumber(),
+                    user.getBatchId(),
+                    batchName
+            );
+        }).collect(Collectors.toList());
     }
 
     public Optional<UsersModel> getUserById(Long id) {

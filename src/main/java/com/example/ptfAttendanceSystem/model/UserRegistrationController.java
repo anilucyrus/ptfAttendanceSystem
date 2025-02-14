@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -193,14 +194,14 @@ public class UserRegistrationController {
         return lateRequestService.deleteLateRequest(requestId);
     }
 
-    @GetMapping(path = "/get/all")
-    public ResponseEntity<List<UsersModel>> getAllUsers() {
+    @GetMapping("/getAllUsers")
+    public ResponseEntity<List<GetAllUsersDTO>> getAllUsers() {
         try {
-            List<UsersModel> users = usersService.getAllUsers();
+            List<GetAllUsersDTO> users = usersService.getAllUsers();
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Internal Server Error");
+            return new ResponseEntity<>(Collections.emptyList(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
