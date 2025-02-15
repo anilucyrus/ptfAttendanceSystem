@@ -1,11 +1,15 @@
 package com.example.ptfAttendanceSystem.late;
 
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class LateRequestResponseDto {
 
     private Long userId;
@@ -16,17 +20,6 @@ public class LateRequestResponseDto {
     private String reason;
     private LocalDate date;
     private String status;
-
-    public LateRequestResponseDto(Long userId, String name, String email, Long batchId, String batchName, String reason, LocalDate date, String status) {
-        this.userId = userId;
-        this.name = name;
-        this.email = email;
-        this.batchId = batchId;
-        this.batchName = batchName;
-        this.reason = reason;
-        this.date = date;
-        this.status = status;
-    }
 
     public Long getUserId() {
         return userId;

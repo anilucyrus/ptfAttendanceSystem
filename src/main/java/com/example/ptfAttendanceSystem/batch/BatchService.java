@@ -68,4 +68,12 @@ public class BatchService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch not found"));
     }
 
+    public String getBatchNameById(Long batchId) {
+        return batchRepository.findById(batchId)
+                .map(BatchModel::getBatchName)
+                .orElse("Unknown Batch");
+    }
+
+
+
 }

@@ -23,8 +23,8 @@ public class Attendance {
     @Column(name = "user_name", nullable = false)
     private String userName;
 
-    @Column(name = "batch_type", nullable = false)
-    private String batchType;
+    @Column(name = "batchName", nullable = false)
+    private String batchName;
     @Column(name = "attendance_date")
     private LocalDate attendanceDate;
 
@@ -62,12 +62,12 @@ public class Attendance {
         this.userName = userName;
     }
 
-    public String getBatchType() {
-        return batchType;
+    public String getBatchName() {
+        return batchName;
     }
 
-    public void setBatchType(String batchType) {
-        this.batchType = batchType;
+    public void setBatchName(String batchName) {
+        this.batchName = batchName;
     }
 
     public LocalDate getAttendanceDate() {

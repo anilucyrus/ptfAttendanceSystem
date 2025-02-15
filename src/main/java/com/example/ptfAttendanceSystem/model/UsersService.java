@@ -222,7 +222,7 @@ public class UsersService {
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
         attendance.setUserName(userName);
-        attendance.setBatchType(batch.getBatchName());
+        attendance.setBatchName(batch.getBatchName());
         attendance.setAttendanceDate(currentDate);
         attendance.setScanInTime(inScanDto.getPresentTime());
         attendance.setStatus(isLate ? "Late" : "Punctual");
@@ -253,7 +253,7 @@ public class UsersService {
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
         attendance.setUserName(userName);
-        attendance.setBatchType(batch.getBatchName());
+        attendance.setBatchName(batch.getBatchName());
         attendance.setAttendanceDate(currentDate);
         attendance.setScanInTime(inScanDto.getPresentTime());
         attendance.setStatus(isLate ? "Late" : "Punctual");
@@ -279,7 +279,7 @@ public class UsersService {
             Attendance attendance = new Attendance();
             attendance.setUserId(userId);
             attendance.setUserName(userName);
-            attendance.setBatchType(batch.getBatchName());
+            attendance.setBatchName(batch.getBatchName());
             attendance.setAttendanceDate(currentDate);
             attendance.setScanInTime(allowedTime);
             attendance.setStatus("Punctual");
@@ -293,7 +293,7 @@ public class UsersService {
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
         attendance.setUserName(userName);
-        attendance.setBatchType(batch.getBatchName());
+        attendance.setBatchName(batch.getBatchName());
         attendance.setAttendanceDate(currentDate);
         attendance.setScanInTime(allowedTime);
         attendance.setStatus("Punctual");

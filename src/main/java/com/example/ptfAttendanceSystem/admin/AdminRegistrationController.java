@@ -11,6 +11,7 @@ import com.example.ptfAttendanceSystem.batchType.BatchTypeModel;
 import com.example.ptfAttendanceSystem.batchType.BatchTypeService;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
+import com.example.ptfAttendanceSystem.late.LateRequestResponseDto;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
@@ -266,18 +267,14 @@ public class AdminRegistrationController {
         }
     }
 
-//    @GetMapping("/leave-requests/today")
-//    public ResponseEntity<?> getLeaveRequestsForToday() {
-//        List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails();
-//        if (leaveRequests.isEmpty()) {
-//            return ResponseEntity.ok("No leave requests for today");
-//        }
-//        return ResponseEntity.ok(leaveRequests);
-//    }
-
     @GetMapping("/leave-requests/today")
     public ResponseEntity<?> getLeaveRequestsForToday(
             @RequestParam(required = false) Long batchId) {  // batchId is optional
+
+        if (batchId != null && !adminService.isBatchExists(batchId)) {
+            return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+        }
+
         List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails(batchId);
         if (leaveRequests.isEmpty()) {
             return ResponseEntity.ok("No leave requests for today");
@@ -355,11 +352,14 @@ public class AdminRegistrationController {
 //        }
 //    }
 
-
     @GetMapping("/getLateRequestsForToday")
     public ResponseEntity<?> getLateRequestsForToday(@RequestParam(required = false) Long batchId) {
         try {
-            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday(batchId);
+            if (batchId != null && !adminService.isBatchExists(batchId)) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+            }
+
+            List<LateRequestResponseDto> lateRequests = adminService.getLateRequestsForToday(batchId);
 
             if (lateRequests.isEmpty()) {
                 return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
@@ -411,11 +411,13 @@ public class AdminRegistrationController {
     }
 
 
-
-
     @GetMapping("/attendance/today")
     public ResponseEntity<?> getAllUserAttendanceToday(@RequestParam Long batchId) {
         LocalDate currentDate = LocalDate.now();
+
+        if (batchId != null && !adminService.isBatchExists(batchId)) {
+            return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+        }
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
         // Filter attendance records by batch ID
@@ -429,6 +431,7 @@ public class AdminRegistrationController {
         if (filteredAttendance.isEmpty()) {
             return new ResponseEntity<>("No attendance records found for today", HttpStatus.NOT_FOUND);
         }
+
         return new ResponseEntity<>(filteredAttendance, HttpStatus.OK);
     }
 

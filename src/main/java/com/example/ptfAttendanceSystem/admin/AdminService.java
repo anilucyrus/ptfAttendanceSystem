@@ -6,8 +6,12 @@ package com.example.ptfAttendanceSystem.admin;
 
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
+import com.example.ptfAttendanceSystem.batch.BatchModel;
+import com.example.ptfAttendanceSystem.batch.BatchRepository;
+import com.example.ptfAttendanceSystem.batch.BatchService;
 import com.example.ptfAttendanceSystem.late.LateRequestModel;
 import com.example.ptfAttendanceSystem.late.LateRequestRepository;
+import com.example.ptfAttendanceSystem.late.LateRequestResponseDto;
 import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
@@ -52,6 +56,12 @@ public class AdminService {
     @Autowired
     private QRCodeService qrCodeService;
 
+@Autowired
+private BatchService batchService;
+
+@Autowired
+private BatchRepository batchRepository;
+
 
 
     @Autowired
@@ -86,50 +96,18 @@ public class AdminService {
         qrCodeService.setStatusFlag(1);
         System.out.println("New Token Generated: " + newToken);
     }
-//
-//    public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails() {
-//        LocalDate currentDate = LocalDate.now();
-//        List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
-//
-//        List<Map<String, Object>> leaveRequestList = new ArrayList<>();
-//        for (LeaveRequestModel leaveRequest : leaveRequests) {
-//            usersRepository.findById(leaveRequest.getUserId()).ifPresent(user -> {
-//                Map<String, Object> response = new HashMap<>();
-//                response.put("id", leaveRequest.getId());
-//                response.put("userId", leaveRequest.getUserId());
-//                response.put("leaveType", leaveRequest.getLeaveType());
-//                response.put("reason", leaveRequest.getReason());
-//                response.put("fromDate", leaveRequest.getFromDate());
-//                response.put("toDate", leaveRequest.getToDate());
-//                response.put("name", user.getName());
-//                response.put("batchId", user.getBatchId());
-//                response.put("numberOfDays", leaveRequest.getNumberOfDays());
-//                response.put("status", leaveRequest.getStatus());
-//                leaveRequestList.add(response);
-//            });
-//        }
-//        return leaveRequestList;
-//    }
 
 
 
-
-    // Updated method with batchId filtering
     public List<Map<String, Object>> getLeaveRequestsForTodayWithUserDetails(Long batchId) {
         LocalDate currentDate = LocalDate.now();
 
-        // Fetch leave requests for today
-        List<LeaveRequestModel> leaveRequests;
-
-        if (batchId != null) {
-            // If batchId is provided, filter leave requests by batchId
-            leaveRequests = leaveRequestRepository.findByFromDateAndBatchId(currentDate, batchId);
-        } else {
-            // If no batchId is provided, get all leave requests for today
-            leaveRequests = leaveRequestRepository.findByFromDate(currentDate);
-        }
+        List<LeaveRequestModel> leaveRequests = (batchId != null)
+                ? leaveRequestRepository.findByFromDateAndBatchId(currentDate, batchId)
+                : leaveRequestRepository.findByFromDate(currentDate);
 
         List<Map<String, Object>> leaveRequestList = new ArrayList<>();
+
         for (LeaveRequestModel leaveRequest : leaveRequests) {
             usersRepository.findById(leaveRequest.getUserId()).ifPresent(user -> {
                 Map<String, Object> response = new HashMap<>();
@@ -141,14 +119,18 @@ public class AdminService {
                 response.put("toDate", leaveRequest.getToDate());
                 response.put("name", user.getName());
                 response.put("batchId", user.getBatchId());
+
+                String batchName = batchService.getBatchNameById(user.getBatchId());
+                response.put("batchName", batchName);
+
                 response.put("numberOfDays", leaveRequest.getNumberOfDays());
                 response.put("status", leaveRequest.getStatus());
+
                 leaveRequestList.add(response);
             });
         }
         return leaveRequestList;
     }
-
 
     public List<LeaveRequestModel> getLeaveRequestsByStatus(LeaveRequestStatus status) {
         return leaveRequestRepository.findByStatus(status);
@@ -241,26 +223,43 @@ public class AdminService {
     }
 
 
-
-    public List<LateRequestModel> getLateRequestsForToday(Long batchId) {
-        LocalDate currentDate = LocalDate.now();
-
-        // If batchId is null, fetch all late requests for the current date.
-        if (batchId != null) {
-            return lateRequestRepository.findByDateAndBatchId(currentDate, batchId);
-        } else {
-            return lateRequestRepository.findByDate(currentDate);
-        }
+    public boolean isBatchExists(Long batchId) {
+        return batchRepository.findById(batchId).isPresent();
     }
 
+    public List<LateRequestResponseDto> getLateRequestsForToday(Long batchId) {
+        LocalDate currentDate = LocalDate.now();
+        List<LateRequestModel> lateRequests;
 
+        if (batchId != null) {
+            lateRequests = lateRequestRepository.findByDateAndBatchId(currentDate, batchId);
+        } else {
+            lateRequests = lateRequestRepository.findByDate(currentDate);
+        }
 
-//
-//
-//    public List<LateRequestModel> getLateRequestsForToday() {
-//        LocalDate currentDate = LocalDate.now();
-//        return lateRequestRepository.Date(currentDate);
-//    }
+        return lateRequests.stream().map(lateRequest -> {
+            LateRequestResponseDto dto = new LateRequestResponseDto();
+            dto.setUserId(lateRequest.getUserId());
+            dto.setReason(lateRequest.getReason());
+            dto.setDate(lateRequest.getDate());
+            dto.setStatus(lateRequest.getStatus().name());
+            dto.setBatchId(lateRequest.getBatchId());
+
+            UsersModel user = usersRepository.findById(lateRequest.getUserId()).orElse(null);
+            if (user != null) {
+                dto.setName(user.getName());
+                dto.setEmail(user.getEmail());
+            }
+
+            BatchModel batch = batchRepository.findById(lateRequest.getBatchId()).orElse(null);
+            if (batch != null) {
+                dto.setBatchName(batch.getBatchName());
+            } else {
+                dto.setBatchName("Batch not found");
+            }
+            return dto;
+        }).collect(Collectors.toList());
+    }
 
 
     public List<LateRequestModel> getLateRequestsByStatus(LateRequestStatus status) {
