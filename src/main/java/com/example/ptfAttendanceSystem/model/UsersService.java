@@ -102,10 +102,10 @@ public class UsersService {
             return ResponseEntity.badRequest().body("Email is required");
         }
 
-        // Fetch batch details
+
         BatchModel batch = batchRepository.findById(savedUser.getBatchId()).orElse(null);
 
-        // Create response
+
         URegistrationResponse response = UserMapper.toResponse(savedUser, batch);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -128,7 +128,7 @@ public class UsersService {
             userModel.setToken(UUID.randomUUID().toString());
             usersRepository.save(userModel);
 
-            // Fetch batch details
+
             BatchModel batch = batchRepository.findById(userModel.getBatchId()).orElse(null);
 
             LoginResponseDto responseDto = new LoginResponseDto(
@@ -174,7 +174,7 @@ public class UsersService {
         String typeData = inScanDto.getType();
 
         try {
-            // Check for the batch type (Custom or Regular) and handle accordingly
+
             if ("in".equalsIgnoreCase(typeData)) {
                 if ("Custom".equalsIgnoreCase(batchType.getBatchType())) {
                     return handleCustomBatchScanIn(userId, usersModel.getName(), batch, batchType, inScanDto);
@@ -272,9 +272,9 @@ public class UsersService {
 
 
     private ResponseEntity<?> markApprovedLateAttendance(Long userId, String userName, BatchModel batch, LocalDate currentDate, BatchTypeModel batchType) {
-        // Handle custom or regular batch differently
+
         if ("Regular".equalsIgnoreCase(batchType.getBatchType())) {
-            // Handle for Regular batch type
+
             LocalTime allowedTime = batch.getStartTime().plusMinutes(30);
             Attendance attendance = new Attendance();
             attendance.setUserId(userId);
@@ -380,12 +380,23 @@ public class UsersService {
 //        return usersRepository.findAll();
 //    }
 
+    public boolean isBatchExists(Long batchId) {
+        return batchRepository.existsById(batchId);
+    }
 
-    public List<GetAllUsersDTO> getAllUsers() {
-        List<UsersModel> users = usersRepository.findAll();
+    public List<GetAllUsersDTO> getAllUsers(Long batchId) {
+        List<UsersModel> users;
+
+        if (batchId != null) {
+            users = usersRepository.findByBatchId(batchId);
+        } else {
+            users = usersRepository.findAll();
+        }
+
         return users.stream().map(user -> {
-            BatchModel batch = batchRepository.findById(user.getBatchId()).orElse(null);
-            String batchName = (batch != null) ? batch.getBatchName() : "Unknown";
+            String batchName = batchRepository.findById(user.getBatchId())
+                    .map(BatchModel::getBatchName)
+                    .orElse("Unknown");
             return new GetAllUsersDTO(
                     user.getUserId(),
                     user.getName(),
@@ -396,6 +407,9 @@ public class UsersService {
             );
         }).collect(Collectors.toList());
     }
+
+
+
 
     public Optional<UsersModel> getUserById(Long id) {
         return usersRepository.findById(id);
@@ -457,6 +471,59 @@ public class UsersService {
 
         mailSender.send(message);
     }
+
+
+
+    public ResponseEntity<?> updateUser(Long userId, UpdateUserDto updateUserDto) {
+        // Check if user exists
+        Optional<UsersModel> optionalUser = usersRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        UsersModel user = optionalUser.get();
+
+        // Update user fields, only if the new values are not null
+        if (updateUserDto.getName() != null && !updateUserDto.getName().isEmpty()) {
+            user.setName(updateUserDto.getName());
+        }
+        if (updateUserDto.getEmail() != null && !updateUserDto.getEmail().isEmpty()) {
+            user.setEmail(updateUserDto.getEmail());
+        }
+        if (updateUserDto.getPassword() != null && !updateUserDto.getPassword().isEmpty()) {
+            user.setPassword(updateUserDto.getPassword());
+        }
+        if (updateUserDto.getPhoneNumber() != null && !updateUserDto.getPhoneNumber().isEmpty()) {
+            user.setPhoneNumber(updateUserDto.getPhoneNumber());
+        }
+
+        // Handle batch update
+        if (updateUserDto.getBatchName() != null && !updateUserDto.getBatchName().isEmpty()) {
+            Optional<BatchModel> batch = batchRepository.findByBatchName(updateUserDto.getBatchName());
+            if (batch.isPresent()) {
+                user.setBatchId(batch.get().getId());
+            } else {
+                return ResponseEntity.badRequest().body("Batch not found");
+            }
+        }
+
+        UsersModel updatedUser = usersRepository.save(user);
+        BatchModel batch = batchRepository.findById(updatedUser.getBatchId()).orElse(null);
+
+        // Build and return response
+        UpdateUserResponseDto responseDto = new UpdateUserResponseDto();
+        responseDto.setUserId(updatedUser.getUserId());
+        responseDto.setName(updatedUser.getName());
+        responseDto.setEmail(updatedUser.getEmail());
+        responseDto.setBatchId(updatedUser.getBatchId());
+        responseDto.setBatchName(batch != null ? batch.getBatchName() : null);
+        responseDto.setPhoneNumber(updatedUser.getPhoneNumber());
+        responseDto.setBatchType(batch != null ? batch.getBatchType().getBatchType() : null);
+        responseDto.setBatchTypeId(batch != null ? batch.getBatchType().getId() : null);
+
+        return ResponseEntity.ok(responseDto);
+    }
+
 
 }
 

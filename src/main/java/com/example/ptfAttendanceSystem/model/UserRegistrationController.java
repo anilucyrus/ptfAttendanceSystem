@@ -195,17 +195,21 @@ public class UserRegistrationController {
     }
 
     @GetMapping("/getAllUsers")
-    public ResponseEntity<List<GetAllUsersDTO>> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(@RequestParam(required = false) Long batchId) {
         try {
-            List<GetAllUsersDTO> users = usersService.getAllUsers();
+            if (batchId != null && !usersService.isBatchExists(batchId)) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.NOT_FOUND);
+            }
+            List<GetAllUsersDTO> users = usersService.getAllUsers(batchId);
+            if (users.isEmpty()) {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(Collections.emptyList(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 
     @PutMapping(path = "/updatePassword")
     public ResponseEntity<?> updateUserPassword(@RequestParam Long id, @RequestBody UserDto userDto) {

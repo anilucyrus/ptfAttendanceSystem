@@ -228,22 +228,17 @@ public class AdminRegistrationController {
 
 
 
-//    @GetMapping("/getAllUsers")
-//    public ResponseEntity<List<UsersModel>> getAllUsers() {
-//        try {
-//            List<UsersModel> users = usersService.getAllUsers();
-//            return new ResponseEntity<>(users, HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
 
     @GetMapping("/getAllUsers")
-    public ResponseEntity<List<GetAllUsersDTO>> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(@RequestParam(required = false) Long batchId) {
         try {
-            List<GetAllUsersDTO> users = usersService.getAllUsers();
+            if (batchId != null && !usersService.isBatchExists(batchId)) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.NOT_FOUND);
+            }
+            List<GetAllUsersDTO> users = usersService.getAllUsers(batchId);
+            if (users.isEmpty()) {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -319,39 +314,6 @@ public class AdminRegistrationController {
         }
     }
 
-//    @GetMapping("/getLateRequestsForToday")
-//    public ResponseEntity<?> getLateRequestsForToday() {
-//        try {
-//            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday();
-//
-//            if (lateRequests.isEmpty()) {
-//                return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
-//            }
-//
-//            return new ResponseEntity<>(lateRequests, HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
-
-//    @GetMapping("/getLateRequestsForToday")
-//    public ResponseEntity<?> getLateRequestsForToday(@RequestParam(required = false) Long batchId) {
-//        try {
-//            List<LateRequestModel> lateRequests = adminService.getLateRequestsForToday(batchId);
-//
-//            if (lateRequests.isEmpty()) {
-//                return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
-//            }
-//
-//            return new ResponseEntity<>(lateRequests, HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
     @GetMapping("/getLateRequestsForToday")
     public ResponseEntity<?> getLateRequestsForToday(@RequestParam(required = false) Long batchId) {
         try {
@@ -420,7 +382,6 @@ public class AdminRegistrationController {
         }
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
-        // Filter attendance records by batch ID
         List<Attendance> filteredAttendance = allAttendance.stream()
                 .filter(attendance -> {
                     Optional<UsersModel> user = usersRepository.findById(attendance.getUserId());
@@ -474,9 +435,9 @@ public class AdminRegistrationController {
     @GetMapping("/attendance/user/{userId}/month/{month}")
     public ResponseEntity<?> getUserAttendanceForMonth(@PathVariable Long userId, @PathVariable String month) {
         try {
-            // Parse the month from the path (e.g., "2025-01")
-            LocalDate startOfMonth = LocalDate.parse(month + "-01"); // Start of the month
-            LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth()); // End of the month
+
+            LocalDate startOfMonth = LocalDate.parse(month + "-01");
+            LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
 
             List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
 
@@ -648,7 +609,10 @@ public class AdminRegistrationController {
 
 
 
-
+    @PutMapping(path = "/updateUser")
+    public ResponseEntity<?> updateUserByAdmin(@RequestParam Long userId, @RequestBody UpdateUserDto updateUserDto) {
+        return usersService.updateUser(userId, updateUserDto);
+    }
 
 
 
