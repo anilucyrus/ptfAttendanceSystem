@@ -648,7 +648,10 @@ public class AdminRegistrationController {
 
 
 
-
+    @PutMapping(path = "/updateUser")
+    public ResponseEntity<?> updateUserByAdmin(@RequestParam Long userId, @RequestBody UpdateUserDto updateUserDto) {
+        return usersService.updateUser(userId, updateUserDto);
+    }
 
 
 

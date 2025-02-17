@@ -458,5 +458,58 @@ public class UsersService {
         mailSender.send(message);
     }
 
+
+
+    public ResponseEntity<?> updateUser(Long userId, UpdateUserDto updateUserDto) {
+        // Check if user exists
+        Optional<UsersModel> optionalUser = usersRepository.findById(userId);
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
+
+        UsersModel user = optionalUser.get();
+
+        // Update user fields, only if the new values are not null
+        if (updateUserDto.getName() != null && !updateUserDto.getName().isEmpty()) {
+            user.setName(updateUserDto.getName());
+        }
+        if (updateUserDto.getEmail() != null && !updateUserDto.getEmail().isEmpty()) {
+            user.setEmail(updateUserDto.getEmail());
+        }
+        if (updateUserDto.getPassword() != null && !updateUserDto.getPassword().isEmpty()) {
+            user.setPassword(updateUserDto.getPassword());
+        }
+        if (updateUserDto.getPhoneNumber() != null && !updateUserDto.getPhoneNumber().isEmpty()) {
+            user.setPhoneNumber(updateUserDto.getPhoneNumber());
+        }
+
+        // Handle batch update
+        if (updateUserDto.getBatchName() != null && !updateUserDto.getBatchName().isEmpty()) {
+            Optional<BatchModel> batch = batchRepository.findByBatchName(updateUserDto.getBatchName());
+            if (batch.isPresent()) {
+                user.setBatchId(batch.get().getId());
+            } else {
+                return ResponseEntity.badRequest().body("Batch not found");
+            }
+        }
+
+        UsersModel updatedUser = usersRepository.save(user);
+        BatchModel batch = batchRepository.findById(updatedUser.getBatchId()).orElse(null);
+
+        // Build and return response
+        UpdateUserResponseDto responseDto = new UpdateUserResponseDto();
+        responseDto.setUserId(updatedUser.getUserId());
+        responseDto.setName(updatedUser.getName());
+        responseDto.setEmail(updatedUser.getEmail());
+        responseDto.setBatchId(updatedUser.getBatchId());
+        responseDto.setBatchName(batch != null ? batch.getBatchName() : null);
+        responseDto.setPhoneNumber(updatedUser.getPhoneNumber());
+        responseDto.setBatchType(batch != null ? batch.getBatchType().getBatchType() : null);
+        responseDto.setBatchTypeId(batch != null ? batch.getBatchType().getId() : null);
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+
 }
 
