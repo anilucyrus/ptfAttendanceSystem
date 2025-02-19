@@ -11,5 +11,4 @@ public class PtfAttendanceSystemApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(PtfAttendanceSystemApplication.class, args);
 	}
-
 }
