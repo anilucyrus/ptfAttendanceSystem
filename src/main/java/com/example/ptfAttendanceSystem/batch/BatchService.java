@@ -19,16 +19,17 @@ public class BatchService {
     private BatchTypeRepository batchTypeRepository;
 
     public BatchModel addBatch(BatchModel batch, Long batchTypeId) {
-
+        // Validate input fields
         if (batch.getBatchName() == null || batch.getStartTime() == null || batch.getEndTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All fields are required.");
         }
 
+        // Check if batch with the same name already exists
         if (batchRepository.findByBatchName(batch.getBatchName()).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Batch with this name already exists.");
         }
 
-
+        // Fetch batch type
         BatchTypeModel batchType = batchTypeRepository.findById(batchTypeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch type not found"));
 
@@ -51,6 +52,21 @@ public class BatchService {
         return batches;
     }
 
+//    public BatchModel updateBatch(Long id, BatchModel updatedBatch, Long batchTypeId) {
+//        return batchRepository.findById(id)
+//                .map(existingBatch -> {
+//                    existingBatch.setBatchName(updatedBatch.getBatchName());
+//                    existingBatch.setStartTime(updatedBatch.getStartTime());
+//                    existingBatch.setEndTime(updatedBatch.getEndTime());
+//
+//                    BatchTypeModel batchType = batchTypeRepository.findById(batchTypeId)
+//                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch type not found"));
+//                    existingBatch.setBatchType(batchType);
+//
+//                    return batchRepository.save(existingBatch);
+//                })
+//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch not found"));
+//    }
 
 
     public BatchModel updateBatch(Long id, BatchModel updatedBatch, Long batchTypeId) {
