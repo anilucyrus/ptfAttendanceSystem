@@ -237,7 +237,7 @@ public class AdminRegistrationController {
             }
             List<GetAllUsersDTO> users = usersService.getAllUsers(batchId);
             if (users.isEmpty()) {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("User not found", HttpStatus.NO_CONTENT);
             }
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {
@@ -272,7 +272,7 @@ public class AdminRegistrationController {
 
         List<Map<String, Object>> leaveRequests = adminService.getLeaveRequestsForTodayWithUserDetails(batchId);
         if (leaveRequests.isEmpty()) {
-            return ResponseEntity.ok("No leave requests for today");
+            return new  ResponseEntity<>("No leave requests for today", HttpStatus.NO_CONTENT);
         }
         return ResponseEntity.ok(leaveRequests);
     }
@@ -324,7 +324,7 @@ public class AdminRegistrationController {
             List<LateRequestResponseDto> lateRequests = adminService.getLateRequestsForToday(batchId);
 
             if (lateRequests.isEmpty()) {
-                return new ResponseEntity<>("No late requests for today", HttpStatus.OK);
+                return new ResponseEntity<>("No late requests for today", HttpStatus.NO_CONTENT);
             }
 
             return new ResponseEntity<>(lateRequests, HttpStatus.OK);
@@ -340,7 +340,7 @@ public class AdminRegistrationController {
             List<LateRequestModel> lateRequests = adminService.getLateRequestsByStatus(status);
 
             if (lateRequests.isEmpty()) {
-                return new ResponseEntity<>("No late requests found for the given status", HttpStatus.OK);
+                return new ResponseEntity<>("No late requests found for the given status", HttpStatus.NO_CONTENT);
             }
 
             return new ResponseEntity<>(lateRequests, HttpStatus.OK);
@@ -390,7 +390,7 @@ public class AdminRegistrationController {
                 .collect(Collectors.toList());
 
         if (filteredAttendance.isEmpty()) {
-            return new ResponseEntity<>("No attendance records found for today", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No attendance records found for today", HttpStatus.NO_CONTENT);
         }
 
         return new ResponseEntity<>(filteredAttendance, HttpStatus.OK);
@@ -403,7 +403,7 @@ public class AdminRegistrationController {
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(attendanceDate);
 
         if (allAttendance.isEmpty()) {
-            return new ResponseEntity<>("No attendance records found for this date", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No attendance records found for this date", HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(allAttendance, HttpStatus.OK);
     }
@@ -423,7 +423,7 @@ public class AdminRegistrationController {
             List<Attendance> attendanceList = attendanceRepository.findByAttendanceDateBetween(start, end);
 
             if (attendanceList.isEmpty()) {
-                return new ResponseEntity<>("No attendance records found for the given date range", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("No attendance records found for the given date range", HttpStatus.NO_CONTENT);
             }
             return new ResponseEntity<>(attendanceList, HttpStatus.OK);
         } catch (Exception e) {
@@ -442,7 +442,7 @@ public class AdminRegistrationController {
             List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
 
             if (userAttendance.isEmpty()) {
-                return new ResponseEntity<>("No attendance records found for this user in the specified month", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("No attendance records found for this user in the specified month", HttpStatus.NO_CONTENT);
             }
 
             return new ResponseEntity<>(userAttendance, HttpStatus.OK);
@@ -465,7 +465,7 @@ public class AdminRegistrationController {
             List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, start, end);
 
             if (userAttendance.isEmpty()) {
-                return new ResponseEntity<>("No attendance records found for this user in the specified date range", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("No attendance records found for this user in the specified date range", HttpStatus.NO_CONTENT);
             }
 
             return new ResponseEntity<>(userAttendance, HttpStatus.OK);
@@ -520,7 +520,7 @@ public class AdminRegistrationController {
             List<LateRequestModel> lateRequests = lateRequestRepository.findByDateBetween(startOfMonth, endOfMonth);
 
             if (lateRequests.isEmpty()) {
-                return new ResponseEntity<>("No records found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("No records found", HttpStatus.NO_CONTENT);
             }
 
             lateRequestRepository.deleteAll(lateRequests);

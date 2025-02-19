@@ -104,7 +104,7 @@ public class UserRegistrationController {
         if (attendance.isPresent()) {
             return new ResponseEntity<>(attendance.get(), HttpStatus.OK);
         } else {
-            return new ResponseEntity<>("Attendance not found for user on this date", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Attendance not found for user on this date", HttpStatus.NO_CONTENT);
         }
     }
 
@@ -115,7 +115,7 @@ public class UserRegistrationController {
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(attendanceDate);
 
         if (allAttendance.isEmpty()) {
-            return new ResponseEntity<>("No attendance records found for this date", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No attendance records found for this date", HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(allAttendance, HttpStatus.OK);
     }
@@ -127,7 +127,7 @@ public class UserRegistrationController {
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
         if (allAttendance.isEmpty()) {
-            return new ResponseEntity<>("No attendance records found for today", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No attendance records found for today", HttpStatus.NO_CONTENT);
         }
         return new ResponseEntity<>(allAttendance, HttpStatus.OK);
     }
@@ -146,7 +146,7 @@ public class UserRegistrationController {
         List<Attendance> attendanceList = usersService.getAttendanceForMonth(userId, month, year);
 
         if (attendanceList.isEmpty()) {
-            return new ResponseEntity<>("No attendance records found for user in this month", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No attendance records found for user in this month", HttpStatus.NO_CONTENT);
         }
 
         return new ResponseEntity<>(attendanceList, HttpStatus.OK);
@@ -202,7 +202,7 @@ public class UserRegistrationController {
             }
             List<GetAllUsersDTO> users = usersService.getAllUsers(batchId);
             if (users.isEmpty()) {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("User not found", HttpStatus.NO_CONTENT);
             }
             return new ResponseEntity<>(users, HttpStatus.OK);
         } catch (Exception e) {

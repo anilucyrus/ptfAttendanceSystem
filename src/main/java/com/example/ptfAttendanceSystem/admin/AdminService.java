@@ -383,7 +383,7 @@ private BatchRepository batchRepository;
         List<Attendance> attendanceRecords = attendanceRepository.findByAttendanceDateBetween(startDate, endDate);
 
         if (attendanceRecords.isEmpty()) {
-            return new ResponseEntity<>("No attendance records found for the specified month", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No attendance records found for the specified month", HttpStatus.NO_CONTENT);
         }
 
         attendanceRepository.deleteByAttendanceDateBetween(startDate, endDate);
@@ -398,7 +398,7 @@ private BatchRepository batchRepository;
         LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
         List<LeaveRequestModel> leaveRequests = leaveRequestRepository.findByFromDateBetween(startOfMonth, endOfMonth);
         if (leaveRequests.isEmpty()) {
-            return new ResponseEntity<>("No leave records found for the specified month", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("No leave records found for the specified month", HttpStatus.NO_CONTENT);
         }
         leaveRequestRepository.deleteByFromDateBetween(startOfMonth, endOfMonth);
         return new ResponseEntity<>("Leave requests for the specified month have been deleted successfully", HttpStatus.OK);
