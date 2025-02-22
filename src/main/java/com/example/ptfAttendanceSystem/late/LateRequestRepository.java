@@ -19,7 +19,7 @@ public interface LateRequestRepository  extends JpaRepository<LateRequestModel, 
 
     List<LateRequestModel> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
-
+    List<LateRequestModel> findByStatusAndBatchId(LateRequestStatus status, Long batchId);
 
     List<LateRequestModel> findByDate(LocalDate date);
 

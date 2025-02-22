@@ -3,12 +3,19 @@ package com.example.ptfAttendanceSystem.model;
 
 
 
+
+
+import com.example.ptfAttendanceSystem.admin.AdminService;
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 
 import com.example.ptfAttendanceSystem.batch.BatchRepository;
 import com.example.ptfAttendanceSystem.late.*;
 import com.example.ptfAttendanceSystem.leave.*;
+import com.example.ptfAttendanceSystem.leaveAndWFH.LeaveWfh;
+import com.example.ptfAttendanceSystem.leaveAndWFH.LeaveWfhRepo;
+import com.example.ptfAttendanceSystem.leaveAndWFH.Wfh;
+import com.example.ptfAttendanceSystem.leaveAndWFH.WfhService;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,10 +23,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -38,7 +43,13 @@ public class UserRegistrationController {
 
     @Autowired
     private QRCodeService qrCodeService;
+    @Autowired
+    private LeaveWfhRepo leaveWfhRepo;
 
+    @Autowired
+    private WfhService wfhService;
+    @Autowired
+    private AdminService adminService;
 
     @Autowired
     private final UsersService usersService;
@@ -51,6 +62,7 @@ public class UserRegistrationController {
 
     @Autowired
     private BatchRepository batchRepository;
+
 
     public UserRegistrationController(UsersService usersService,
                                       LeaveRequestService leaveRequestService,
@@ -122,14 +134,44 @@ public class UserRegistrationController {
 
 
     @GetMapping("/attendance/today")
-    public ResponseEntity<?> getAllUserAttendanceToday() {
+    public ResponseEntity<?> getAllUserAttendanceToday(@RequestParam Long batchId) {
         LocalDate currentDate = LocalDate.now();
+
+        if (batchId != null && !adminService.isBatchExists(batchId)) {
+            return new ResponseEntity<>("Batch not found", HttpStatus.NOT_FOUND);
+        }
+
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
-        if (allAttendance.isEmpty()) {
+        List<Map<String, Object>> attendanceResponse = allAttendance.stream()
+                .map(attendance -> {
+                    Optional<UsersModel> userOpt = usersRepository.findById(attendance.getUserId());
+                    if (userOpt.isPresent()) {
+                        UsersModel user = userOpt.get();
+                        if (user.getBatchId().equals(batchId)) {
+                            Map<String, Object> responseMap = new HashMap<>();
+                            responseMap.put("id", attendance.getId());
+                            responseMap.put("userId", attendance.getUserId());
+                            responseMap.put("userName", attendance.getUserName());
+                            responseMap.put("batchId", user.getBatchId());
+                            responseMap.put("batchName", attendance.getBatchName());
+                            responseMap.put("attendanceDate", attendance.getAttendanceDate());
+                            responseMap.put("scanInTime", attendance.getScanInTime());
+                            responseMap.put("scanOutTime", attendance.getScanOutTime());
+                            responseMap.put("status", attendance.getStatus());
+                            return responseMap;
+                        }
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (attendanceResponse.isEmpty()) {
             return new ResponseEntity<>("No attendance records found for today", HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(allAttendance, HttpStatus.OK);
+
+        return new ResponseEntity<>(attendanceResponse, HttpStatus.OK);
     }
 
 
@@ -153,19 +195,50 @@ public class UserRegistrationController {
     }
 
     @PostMapping("/leave-request")
-    public ResponseEntity<?> requestLeave(@RequestParam Long userId, @RequestBody LeaveRequestDto leaveRequestDto) {
-        return leaveRequestService.requestLeave(userId, leaveRequestDto);
+    public ResponseEntity<?> requestLeave(@RequestParam Long userId, @RequestBody LeaveRequestDto leaveRequestDto,
+                                          @RequestParam Integer wfh) {
+        Optional<LeaveWfh> leaveWfhOptional = leaveWfhRepo.findById(wfh);
+        if (leaveWfhOptional.isPresent()){
+            LeaveWfh leaveWfh = leaveWfhOptional.get();
+            String name = leaveWfh.getName();
+            if ("Leave".equalsIgnoreCase(name)){
+                return leaveRequestService.requestLeave(userId, leaveRequestDto);
+            } else if ("Work From Home".equalsIgnoreCase(name)) {
+                return leaveRequestService.requestWorkFromHome(userId, leaveRequestDto);
+            }else {
+                return new ResponseEntity<>("Invalaid Name of leave or WFH",HttpStatus.NOT_FOUND);
+            }
+        }else {
+            return new ResponseEntity<>("Leave or WFH is required",HttpStatus.BAD_REQUEST);
+        }
+
     }
 
-    @PutMapping("/leave-request")
-    public ResponseEntity<?> updateLeaveRequest(@RequestParam Long requestId, @RequestBody LeaveRequestDto leaveRequestDto) {
-        return leaveRequestService.updateLeaveRequest(requestId, leaveRequestDto);
-    }
+//    @PutMapping("/leave-request")
+//    public ResponseEntity<?> updateLeaveRequest(@RequestParam Long requestId, @RequestBody LeaveRequestDto leaveRequestDto) {
+//        return leaveRequestService.updateLeaveRequest(requestId, leaveRequestDto);
+//    }
 
 
     @GetMapping("/leave-requests")
-    public ResponseEntity<?> getAllLeaveRequestsByUserId(@RequestParam Long userId) {
-        return leaveRequestService.getAllLeaveRequestsByUserId(userId);
+    public ResponseEntity<?> getAllLeaveRequestsByUserId(@RequestParam Long userId,@RequestParam Integer wfromHId) {
+
+
+
+        Optional<LeaveWfh> leaveWfhOptional = leaveWfhRepo.findById(wfromHId);
+        if (leaveWfhOptional.isPresent()){
+            LeaveWfh leaveWfh = leaveWfhOptional.get();
+            String name = leaveWfh.getName();
+            if ("Leave".equalsIgnoreCase(name)){
+                return leaveRequestService.getAllLeaveRequestsByUserId(userId);
+            } else if ("Work From Home".equalsIgnoreCase(name)) {
+                return leaveRequestService.getAllWorkFromHomeRequestsByUserId(userId);
+            }else {
+                return new ResponseEntity<>("Invalaid Name of leave or WFH",HttpStatus.NOT_FOUND);
+            }
+        }else {
+            return new ResponseEntity<>("Leave or WFH is required",HttpStatus.BAD_REQUEST);
+        }
     }
 
 
@@ -178,11 +251,11 @@ public class UserRegistrationController {
     public ResponseEntity<?> requestLate(@RequestParam Long userId, @RequestBody LateRequestDto lateRequestDto) {
         return lateRequestService.requestLate(userId, lateRequestDto);
     }
-
-    @PutMapping("/late-request")
-    public ResponseEntity<?> updateLateRequest(@RequestParam Long requestId, @RequestBody LateRequestDto lateRequestDto) {
-        return lateRequestService.updateLateRequest(requestId, lateRequestDto);
-    }
+//
+//    @PutMapping("/late-request")
+//    public ResponseEntity<?> updateLateRequest(@RequestParam Long requestId, @RequestBody LateRequestDto lateRequestDto) {
+//        return lateRequestService.updateLateRequest(requestId, lateRequestDto);
+//    }
 
     @GetMapping("/late-requests")
     public ResponseEntity<?> getAllLateRequestsForUser(@RequestParam Long userId) {
@@ -193,6 +266,16 @@ public class UserRegistrationController {
     public ResponseEntity<?> deleteLateRequest(@RequestParam Long requestId) {
         return lateRequestService.deleteLateRequest(requestId);
     }
+
+    @DeleteMapping("/wfh-request")
+    public ResponseEntity<?> deleteWorkFromHomeRequest(@RequestParam Long requestId) {
+        return leaveRequestService.deleteWorkFromHomeRequest(requestId);
+    }
+//
+//    @DeleteMapping("/wfh-request")
+//    public ResponseEntity<?> deleteWfhRequest(@RequestParam Long requestId) {
+//        return leaveRequestService.deleteWfhRequest(requestId);
+//    }
 
     @GetMapping("/getAllUsers")
     public ResponseEntity<?> getAllUsers(@RequestParam(required = false) Long batchId) {
@@ -223,20 +306,20 @@ public class UserRegistrationController {
     }
 
 
-    @DeleteMapping(path = "/delete")
-    public ResponseEntity<?> deleteUser(@RequestParam Long id) {
-        try {
-            boolean isDeleted = usersService.deleteUser(id);
-            if (isDeleted) {
-                return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+//    @DeleteMapping(path = "/delete")
+//    public ResponseEntity<?> deleteUser(@RequestParam Long id) {
+//        try {
+//            boolean isDeleted = usersService.deleteUser(id);
+//            if (isDeleted) {
+//                return new ResponseEntity<>("User deleted successfully", HttpStatus.OK);
+//            } else {
+//                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+//    }
 
 
 
@@ -263,6 +346,8 @@ public class UserRegistrationController {
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
 }
 

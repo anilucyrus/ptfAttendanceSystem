@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class BatchService {
@@ -100,5 +101,12 @@ public class BatchService {
     }
 
 
+    public Optional<BatchModel> getBatchByName(String batchName) {
+        return batchRepository.findByBatchName(batchName);
+    }
+
+    public Optional<BatchModel> getBatchById(Long batchId) {
+        return batchRepository.findById(batchId);
+    }
 
 }

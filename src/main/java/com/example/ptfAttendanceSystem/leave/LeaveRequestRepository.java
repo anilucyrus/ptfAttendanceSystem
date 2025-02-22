@@ -22,6 +22,8 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequestModel,
 
     List<LeaveRequestModel> findByFromDateBetween(LocalDate startDate, LocalDate endDate);
 
+    List<LeaveRequestModel> findByStatusAndBatchId(LeaveRequestStatus status, Long batchId);
+
     @Transactional
     void deleteByFromDateBetween(LocalDate startDate, LocalDate endDate);
 

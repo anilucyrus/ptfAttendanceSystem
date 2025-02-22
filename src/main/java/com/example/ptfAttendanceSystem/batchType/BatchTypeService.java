@@ -37,7 +37,7 @@ public class BatchTypeService {
     public ResponseEntity<?> getAllBatchType() {
         List<BatchTypeModel> batchTypes = batchTypeRepository.findAll();
         if (batchTypes.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Batch type not found");
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("Batch type not found");
         }
         return ResponseEntity.ok(batchTypes);
     }

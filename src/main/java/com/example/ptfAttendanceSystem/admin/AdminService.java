@@ -16,6 +16,9 @@ import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestStatus;
+import com.example.ptfAttendanceSystem.leaveAndWFH.Wfh;
+import com.example.ptfAttendanceSystem.leaveAndWFH.WfhRepo;
+import com.example.ptfAttendanceSystem.leaveAndWFH.WfhStatus;
 import com.example.ptfAttendanceSystem.model.ForgotPasswordDto;
 import com.example.ptfAttendanceSystem.model.UsersModel;
 import com.example.ptfAttendanceSystem.model.UsersRepository;
@@ -62,7 +65,8 @@ private BatchService batchService;
 @Autowired
 private BatchRepository batchRepository;
 
-
+    @Autowired
+    private WfhRepo wfhRepo;
 
     @Autowired
 
@@ -132,33 +136,40 @@ private BatchRepository batchRepository;
         return leaveRequestList;
     }
 
-    public List<LeaveRequestModel> getLeaveRequestsByStatus(LeaveRequestStatus status) {
-        return leaveRequestRepository.findByStatus(status);
-    }
-
-    public ResponseEntity<?> approveLeaveRequest(Long leaveRequestId) {
-        Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);
-        if (leaveRequestOptional.isPresent()) {
-            LeaveRequestModel leaveRequest = leaveRequestOptional.get();
-
-            if (leaveRequest.getStatus() == LeaveRequestStatus.PENDING) {
-                leaveRequest.setStatus(LeaveRequestStatus.APPROVED);
-                leaveRequestRepository.save(leaveRequest);
-                Optional<UsersModel> userOptional = usersRepository.findById(leaveRequest.getUserId());
-                if (userOptional.isPresent()) {
-                    UsersModel user = userOptional.get();
-                    sendLeaveRequestApprovalEmail(user.getEmail(), leaveRequest);
-                }
-
-                return new ResponseEntity<>("Leave request approved", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("Leave request is already processed", HttpStatus.BAD_REQUEST);
-            }
+    public List<LeaveRequestModel> getLeaveRequestsByStatusAndBatch(LeaveRequestStatus status, Long batchId) {
+        if (batchId != null) {
+            return leaveRequestRepository.findByStatusAndBatchId(status, batchId);
         } else {
-            return new ResponseEntity<>("Leave request not found for ID: " + leaveRequestId, HttpStatus.NOT_FOUND);
+            return leaveRequestRepository.findByStatus(status);
         }
     }
+    public ResponseEntity<?> approveLeaveRequest(Long leaveRequestId) {
+        Optional<LeaveRequestModel> leaveRequestOptional = leaveRequestRepository.findById(leaveRequestId);
 
+        if (leaveRequestOptional.isEmpty()) {
+            return new ResponseEntity<>("Leave request not found for ID: " + leaveRequestId, HttpStatus.NOT_FOUND);
+        }
+
+        LeaveRequestModel leaveRequest = leaveRequestOptional.get();
+
+        // Prevent approval of past leaves
+        if (leaveRequest.getToDate().isBefore(LocalDate.now())) {
+            return new ResponseEntity<>("Cannot approve leave request for past dates.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (leaveRequest.getStatus() != LeaveRequestStatus.PENDING) {
+            return new ResponseEntity<>("Leave request is already processed.", HttpStatus.BAD_REQUEST);
+        }
+
+        leaveRequest.setStatus(LeaveRequestStatus.APPROVED);
+        leaveRequestRepository.save(leaveRequest);
+
+        usersRepository.findById(leaveRequest.getUserId()).ifPresent(user ->
+                sendLeaveRequestApprovalEmail(user.getEmail(), leaveRequest)
+        );
+
+        return new ResponseEntity<>("Leave request approved successfully.", HttpStatus.OK);
+    }
     private void handleAttendanceForLeave(LeaveRequestModel leaveRequest) {
         LocalDate startDate = leaveRequest.getFromDate();
         LocalDate endDate = leaveRequest.getToDate();
@@ -261,16 +272,23 @@ private BatchRepository batchRepository;
         }).collect(Collectors.toList());
     }
 
-
-    public List<LateRequestModel> getLateRequestsByStatus(LateRequestStatus status) {
-        return lateRequestRepository.findByStatus(status);
+    public List<LateRequestModel> getLateRequestsByStatusAndBatch(LateRequestStatus status, Long batchId) {
+        if (batchId != null) {
+            return lateRequestRepository.findByStatusAndBatchId(status, batchId);
+        } else {
+            return lateRequestRepository.findByStatus(status);
+        }
     }
-
     public ResponseEntity<?> approveLateRequest(Long lateRequestId) {
         Optional<LateRequestModel> lateRequestOptional = lateRequestRepository.findById(lateRequestId);
 
         if (lateRequestOptional.isPresent()) {
             LateRequestModel lateRequest = lateRequestOptional.get();
+
+
+            if (lateRequest.getDate().isBefore(LocalDate.now())) {
+                return new ResponseEntity<>("Cannot approve late request for past dates.", HttpStatus.BAD_REQUEST);
+            }
 
             if (lateRequest.getStatus() == LateRequestStatus.PENDING) {
                 lateRequest.setStatus(LateRequestStatus.APPROVED);
@@ -404,6 +422,43 @@ private BatchRepository batchRepository;
         return new ResponseEntity<>("Leave requests for the specified month have been deleted successfully", HttpStatus.OK);
     }
 
+    public ResponseEntity<?> approveWorkFromHomeRequest(Long wfhRequestId) {
+        Optional<Wfh> wfhRequestOptional = wfhRepo.findById(wfhRequestId);
+        if (wfhRequestOptional.isEmpty()) {
+            return new ResponseEntity<>("Work From Home request not found", HttpStatus.NOT_FOUND);
+        }
 
+        Wfh wfhRequest = wfhRequestOptional.get();
+
+        if (wfhRequest.getToDate().isBefore(LocalDate.now())) {
+            return new ResponseEntity<>("Cannot approve work from home request for past dates.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (wfhRequest.getStatus() == WfhStatus.APPROVED) {
+            return new ResponseEntity<>("Request is already approved", HttpStatus.BAD_REQUEST);
+        }
+
+        wfhRequest.setStatus(WfhStatus.APPROVED);
+        wfhRepo.save(wfhRequest);
+
+        return new ResponseEntity<>("Work From Home request approved successfully", HttpStatus.OK);
+    }
+
+    public ResponseEntity<?> rejectWorkFromHomeRequest(Long wfhRequestId) {
+        Optional<Wfh> wfhRequestOptional = wfhRepo.findById(wfhRequestId);
+        if (wfhRequestOptional.isEmpty()) {
+            return new ResponseEntity<>("Work From Home request not found", HttpStatus.NOT_FOUND);
+        }
+
+        Wfh wfhRequest = wfhRequestOptional.get();
+        if (wfhRequest.getStatus() == WfhStatus.REJECTED) {
+            return new ResponseEntity<>("Request is already rejected", HttpStatus.BAD_REQUEST);
+        }
+
+        wfhRequest.setStatus(WfhStatus.REJECTED);
+        wfhRepo.save(wfhRequest);
+
+        return new ResponseEntity<>("Work From Home request rejected successfully", HttpStatus.OK);
+    }
 
 }

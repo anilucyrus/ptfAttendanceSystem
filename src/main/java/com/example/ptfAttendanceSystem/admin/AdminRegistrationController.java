@@ -16,6 +16,7 @@ import com.example.ptfAttendanceSystem.late.LateRequestStatus;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestModel;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestRepository;
 import com.example.ptfAttendanceSystem.leave.LeaveRequestStatus;
+import com.example.ptfAttendanceSystem.leaveAndWFH.*;
 import com.example.ptfAttendanceSystem.model.*;
 import com.example.ptfAttendanceSystem.qr.QRCodeService;
 import com.example.ptfAttendanceSystem.qr.ScanDto;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -75,6 +77,13 @@ public class AdminRegistrationController {
     @Autowired
     private BatchTypeService batchTypeService;
 
+    @Autowired
+    private LeaveWfhRepo leaveWfhRepo;
+
+
+    @Autowired
+    private WfhService wfhService;
+
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
         try {
@@ -108,7 +117,7 @@ public class AdminRegistrationController {
 
                 return new ResponseEntity<>(responseDto, HttpStatus.ACCEPTED);
             } else {
-                return new ResponseEntity<>("No details found", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>("No details found", HttpStatus.UNAUTHORIZED);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -165,7 +174,7 @@ public class AdminRegistrationController {
 
             Optional<AdminModel> adminOptional = adminRepository.findByEmail(forgotPasswordDto.getEmail());
             if (adminOptional.isEmpty()) {
-                return new ResponseEntity<>("Admin not found with the provided email", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("Admin not found with the provided email", HttpStatus.NO_CONTENT);
             }
 
 
@@ -289,20 +298,51 @@ public class AdminRegistrationController {
     }
 
     @GetMapping("/getLeaveRequestsByStatus")
-    public ResponseEntity<?> getLeaveRequestsByStatus(@RequestParam LeaveRequestStatus status) {
-        try {
-            List<LeaveRequestModel> leaveRequests = adminService.getLeaveRequestsByStatus(status);
+    public ResponseEntity<?> getLeaveRequestsByStatus(
+            @RequestParam LeaveRequestStatus status,
+            @RequestParam(required = false) Long batchId) {
 
-            if (leaveRequests.isEmpty()) {
-                return new ResponseEntity<>("No leave requests found for the given status", HttpStatus.OK);
+        try {
+            List<LeaveRequestModel> leaveRequests = adminService.getLeaveRequestsByStatusAndBatch(status, batchId);
+
+            if (batchId != null && !adminService.isBatchExists(batchId)) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
             }
 
-            return new ResponseEntity<>(leaveRequests, HttpStatus.OK);
+            if (leaveRequests.isEmpty()) {
+                return new ResponseEntity<>("No leave requests found for the given status and batch", HttpStatus.NO_CONTENT);
+            }
+
+            List<Map<String, Object>> responseList = leaveRequests.stream().map(leaveRequest -> {
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("id", leaveRequest.getId());
+                responseMap.put("userId", leaveRequest.getUserId());
+                responseMap.put("fromDate", leaveRequest.getFromDate());
+                responseMap.put("toDate", leaveRequest.getToDate());
+                responseMap.put("status", leaveRequest.getStatus());
+                responseMap.put("reason", leaveRequest.getReason());
+
+                // Fetch user details
+                UsersModel user = usersRepository.findById(leaveRequest.getUserId()).orElse(null);
+                responseMap.put("userName", user != null ? user.getName() : "Unknown");
+
+                // Fetch batch details
+                String batchName = batchService.getBatchById(leaveRequest.getBatchId())
+                        .map(BatchModel::getBatchName)
+                        .orElse("Unknown");
+                responseMap.put("batchId", leaveRequest.getBatchId());
+                responseMap.put("batchName", batchName);
+
+                return responseMap;
+            }).collect(Collectors.toList());
+
+            return new ResponseEntity<>(responseList, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     @PostMapping("/rejectLeaveRequest/{leaveRequestId}")
     public ResponseEntity<?> rejectLeaveRequest(@PathVariable Long leaveRequestId) {
@@ -335,20 +375,49 @@ public class AdminRegistrationController {
     }
 
     @GetMapping("/getLateRequestsByStatus")
-    public ResponseEntity<?> getLateRequestsByStatus(@RequestParam LateRequestStatus status) {
-        try {
-            List<LateRequestModel> lateRequests = adminService.getLateRequestsByStatus(status);
+    public ResponseEntity<?> getLateRequestsByStatus(
+            @RequestParam LateRequestStatus status,
+            @RequestParam Long batchId) {
 
+        try {
+            List<LateRequestModel> lateRequests = adminService.getLateRequestsByStatusAndBatch(status, batchId);
+
+            if (batchId != null && !adminService.isBatchExists(batchId)) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+            }
             if (lateRequests.isEmpty()) {
-                return new ResponseEntity<>("No late requests found for the given status", HttpStatus.NO_CONTENT);
+                return new ResponseEntity<>("No late requests found for the given status and batch", HttpStatus.NO_CONTENT);
             }
 
-            return new ResponseEntity<>(lateRequests, HttpStatus.OK);
+            List<Map<String, Object>> responseList = lateRequests.stream().map(lateRequest -> {
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("id", lateRequest.getId());
+                responseMap.put("userId", lateRequest.getUserId());
+                responseMap.put("reason", lateRequest.getReason());
+                responseMap.put("date", lateRequest.getDate());
+                responseMap.put("status", lateRequest.getStatus());
+
+                // Fetch user details
+                UsersModel user = usersRepository.findById(lateRequest.getUserId()).orElse(null);
+                responseMap.put("userName", user != null ? user.getName() : "Unknown");
+
+                // Fetch batch details
+                String batchName = batchService.getBatchById(lateRequest.getBatchId())
+                        .map(BatchModel::getBatchName)
+                        .orElse("Unknown");
+                responseMap.put("batchId", lateRequest.getBatchId());
+                responseMap.put("batchName", batchName);
+
+                return responseMap;
+            }).collect(Collectors.toList());
+
+            return new ResponseEntity<>(responseList, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 
     @PostMapping("/approveLateRequest/{lateRequestId}")
@@ -380,22 +449,124 @@ public class AdminRegistrationController {
         if (batchId != null && !adminService.isBatchExists(batchId)) {
             return new ResponseEntity<>("Batch not found", HttpStatus.NOT_FOUND);
         }
+
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
-        List<Attendance> filteredAttendance = allAttendance.stream()
-                .filter(attendance -> {
-                    Optional<UsersModel> user = usersRepository.findById(attendance.getUserId());
-                    return user.isPresent() && user.get().getBatchId().equals(batchId);
+        List<Map<String, Object>> attendanceResponse = allAttendance.stream()
+                .map(attendance -> {
+                    Optional<UsersModel> userOpt = usersRepository.findById(attendance.getUserId());
+                    if (userOpt.isPresent()) {
+                        UsersModel user = userOpt.get();
+                        if (user.getBatchId().equals(batchId)) {
+                            Map<String, Object> responseMap = new HashMap<>();
+                            responseMap.put("id", attendance.getId());
+                            responseMap.put("userId", attendance.getUserId());
+                            responseMap.put("userName", attendance.getUserName());
+                            responseMap.put("batchId", user.getBatchId());
+                            responseMap.put("batchName", attendance.getBatchName());
+                            responseMap.put("attendanceDate", attendance.getAttendanceDate());
+                            responseMap.put("scanInTime", attendance.getScanInTime());
+                            responseMap.put("scanOutTime", attendance.getScanOutTime());
+                            responseMap.put("status", attendance.getStatus());
+                            return responseMap;
+                        }
+                    }
+                    return null;
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        if (filteredAttendance.isEmpty()) {
+        if (attendanceResponse.isEmpty()) {
             return new ResponseEntity<>("No attendance records found for today", HttpStatus.NO_CONTENT);
         }
 
-        return new ResponseEntity<>(filteredAttendance, HttpStatus.OK);
+        return new ResponseEntity<>(attendanceResponse, HttpStatus.OK);
     }
 
+
+    @GetMapping("/attendance/user/{userId}/month/{month}")
+    public ResponseEntity<?> getUserAttendanceForMonth(@PathVariable Long userId, @PathVariable String month) {
+        try {
+            LocalDate startOfMonth = LocalDate.parse(month + "-01");
+            LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
+
+            List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
+            Optional<UsersModel> userOpt = usersRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            }
+
+            Long batchId = userOpt.get().getBatchId(); // Retrieve batchId
+            if (userAttendance.isEmpty()) {
+                return new ResponseEntity<>("No attendance records found for this user in the specified month", HttpStatus.NO_CONTENT);
+            }
+
+
+
+            List<Map<String, Object>> attendanceResponse = userAttendance.stream().map(attendance -> {
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("id", attendance.getId());
+                responseMap.put("userId", attendance.getUserId());
+                responseMap.put("userName", attendance.getUserName());
+                responseMap.put("batchId", batchId); // Include batchId
+                responseMap.put("batchName", attendance.getBatchName());
+                responseMap.put("attendanceDate", attendance.getAttendanceDate());
+                responseMap.put("scanInTime", attendance.getScanInTime());
+                responseMap.put("scanOutTime", attendance.getScanOutTime());
+                responseMap.put("status", attendance.getStatus());
+                return responseMap;
+            }).collect(Collectors.toList());
+
+            return new ResponseEntity<>(attendanceResponse, HttpStatus.OK);
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid month format. Please use yyyy-MM format.", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    @GetMapping("/attendance/userDate-range")
+    public ResponseEntity<?> getUserAttendanceBetweenDates(
+            @RequestParam Long userId,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+
+            if (end.isBefore(start)) {
+                return new ResponseEntity<>("End date must be after start date.", HttpStatus.BAD_REQUEST);
+            }
+
+            List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, start, end);
+
+            if (userAttendance.isEmpty()) {
+                return new ResponseEntity<>("No attendance records found for this user in the specified date range", HttpStatus.NO_CONTENT);
+            }
+
+            // Fetch batch ID for each attendance entry
+            List<Map<String, Object>> response = userAttendance.stream().map(attendance -> {
+                Map<String, Object> attendanceData = new HashMap<>();
+                attendanceData.put("id", attendance.getId());
+                attendanceData.put("userId", attendance.getUserId());
+                attendanceData.put("userName", attendance.getUserName());
+                attendanceData.put("batchName", attendance.getBatchName());
+                attendanceData.put("attendanceDate", attendance.getAttendanceDate());
+                attendanceData.put("scanInTime", attendance.getScanInTime());
+                attendanceData.put("scanOutTime", attendance.getScanOutTime());
+                attendanceData.put("status", attendance.getStatus());
+                batchService.getBatchByName(attendance.getBatchName()).ifPresent(batch -> {
+                    attendanceData.put("batchId", batch.getId());
+                });
+
+
+                return attendanceData;
+            }).collect(Collectors.toList());
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd format.", HttpStatus.BAD_REQUEST);
+        }
+    }
 
     @GetMapping("/attendance/date/{date}")
     public ResponseEntity<?> getAllUserAttendance(@PathVariable String date) {
@@ -407,8 +578,6 @@ public class AdminRegistrationController {
         }
         return new ResponseEntity<>(allAttendance, HttpStatus.OK);
     }
-
-
 
     @GetMapping("/date-range")
     public ResponseEntity<?> getAttendanceBetweenDates(@RequestParam String startDate, @RequestParam String endDate) {
@@ -431,48 +600,6 @@ public class AdminRegistrationController {
         }
     }
 
-
-    @GetMapping("/attendance/user/{userId}/month/{month}")
-    public ResponseEntity<?> getUserAttendanceForMonth(@PathVariable Long userId, @PathVariable String month) {
-        try {
-
-            LocalDate startOfMonth = LocalDate.parse(month + "-01");
-            LocalDate endOfMonth = startOfMonth.withDayOfMonth(startOfMonth.lengthOfMonth());
-
-            List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
-
-            if (userAttendance.isEmpty()) {
-                return new ResponseEntity<>("No attendance records found for this user in the specified month", HttpStatus.NO_CONTENT);
-            }
-
-            return new ResponseEntity<>(userAttendance, HttpStatus.OK);
-        } catch (DateTimeParseException e) {
-            return new ResponseEntity<>("Invalid month format. Please use yyyy-MM format.", HttpStatus.BAD_REQUEST);
-        }
-    }
-
-
-    @GetMapping("/attendance/userDate-range")
-    public ResponseEntity<?> getUserAttendanceBetweenDates(@RequestParam Long userId, @RequestParam String startDate, @RequestParam String endDate) {
-        try {
-            LocalDate start = LocalDate.parse(startDate);
-            LocalDate end = LocalDate.parse(endDate);
-
-            if (end.isBefore(start)) {
-                return new ResponseEntity<>("End date must be after start date.", HttpStatus.BAD_REQUEST);
-            }
-
-            List<Attendance> userAttendance = attendanceRepository.findByUserIdAndAttendanceDateBetween(userId, start, end);
-
-            if (userAttendance.isEmpty()) {
-                return new ResponseEntity<>("No attendance records found for this user in the specified date range", HttpStatus.NO_CONTENT);
-            }
-
-            return new ResponseEntity<>(userAttendance, HttpStatus.OK);
-        } catch (DateTimeParseException e) {
-            return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd format.", HttpStatus.BAD_REQUEST);
-        }
-    }
 
     @DeleteMapping(path = "/deleteUser/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
@@ -573,6 +700,7 @@ public class AdminRegistrationController {
 
 
 
+
     @PostMapping(path = "/addBatchType")
     public ResponseEntity<?> addBatchType(@RequestBody BatchTypeModel batch_type) {
         return new ResponseEntity<>(batchTypeService.addBatchType(batch_type), HttpStatus.CREATED);
@@ -614,6 +742,150 @@ public class AdminRegistrationController {
         return usersService.updateUser(userId, updateUserDto);
     }
 
+    @GetMapping("/LeaveWfh")
+    public ResponseEntity<List<LeaveWfh>> getAllWfh() {
+        List<LeaveWfh> wfhList = wfhService.getAllWfh();
+        return ResponseEntity.ok(wfhList);
+    }
 
+
+
+    @PostMapping("/LeaveWfh")
+    public ResponseEntity<?> addWfh(@RequestBody LeaveWfh leaveWfh) {
+        try {
+            if (leaveWfh.getName() == null || leaveWfh.getName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("WFH name cannot be empty.");
+            }
+
+            Optional<LeaveWfh> existingWfh = leaveWfhRepo.findByName(leaveWfh.getName().trim());
+            if (existingWfh.isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("WFH name already exists.");
+            }
+
+            LeaveWfh savedWfh = wfhService.addWfh(leaveWfh);
+            return new ResponseEntity<>(savedWfh, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred while saving WFH: " + e.getMessage());
+        }
+    }
+
+
+    @PutMapping("/LeaveWfh/{id}")
+    public ResponseEntity<?> updateWfh(@PathVariable Integer id, @RequestBody LeaveWfh leaveWfh) {
+        try {
+            LeaveWfh updatedWfh = wfhService.updateWfh(id, leaveWfh);
+            return ResponseEntity.ok(updatedWfh);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+
+    @DeleteMapping("/LeaveWfh/{id}")
+    public ResponseEntity<String> deleteWfh(@PathVariable Integer id) {
+        try {
+            wfhService.deleteWfh(id);
+            return ResponseEntity.ok("WFH entry deleted successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/approveWorkFromHomeRequest/{wfhRequestId}")
+    public ResponseEntity<?> approveWorkFromHomeRequest(@PathVariable Long wfhRequestId) {
+        try {
+            return adminService.approveWorkFromHomeRequest(wfhRequestId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/rejectWorkFromHomeRequest/{wfhRequestId}")
+    public ResponseEntity<?> rejectWorkFromHomeRequest(@PathVariable Long wfhRequestId) {
+        try {
+            return adminService.rejectWorkFromHomeRequest(wfhRequestId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+//    @GetMapping("/getWfhRequestsByStatusAndBatch")
+//    public ResponseEntity<?> getWfhRequestsByStatusAndBatch(
+//            @RequestParam WfhStatus status,
+//            @RequestParam Long batchId) {
+//
+//        try {
+//            List<Wfh> wfhRequests = wfhService.getWfhRequestsByStatusAndBatch(status, batchId);
+//
+//
+//            if (batchId != null && !adminService.isBatchExists(batchId)) {
+//                return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+//            }
+//
+//            if (wfhRequests.isEmpty()) {
+//                return new ResponseEntity<>("No WFH requests found for the given status and batch", HttpStatus.NO_CONTENT);
+//            }
+//
+//            return new ResponseEntity<>(wfhRequests, HttpStatus.OK);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+
+
+    @GetMapping("/getWfhRequestsByStatusAndBatch")
+    public ResponseEntity<?> getWfhRequestsByStatusAndBatch(
+            @RequestParam WfhStatus status,
+            @RequestParam Long batchId) {
+
+        try {
+            if (batchId != null && !adminService.isBatchExists(batchId)) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+            }
+
+            List<Wfh> wfhRequests = wfhService.getWfhRequestsByStatusAndBatch(status, batchId);
+
+            if (wfhRequests.isEmpty()) {
+                return new ResponseEntity<>("No WFH requests found for the given status and batch", HttpStatus.NO_CONTENT);
+            }
+
+            List<Map<String, Object>> responseList = wfhRequests.stream().map(wfh -> {
+                Map<String, Object> responseMap = new HashMap<>();
+                responseMap.put("id", wfh.getId());
+                responseMap.put("userId", wfh.getUserId());
+                responseMap.put("fromDate", wfh.getFromDate());
+                responseMap.put("toDate", wfh.getToDate());
+                responseMap.put("status", wfh.getStatus());
+                responseMap.put("reason", wfh.getReason());
+                responseMap.put("leaveType", wfh.getLeaveType()); // Keeping leaveType
+
+                // Calculate number of days
+                long numberOfDays = ChronoUnit.DAYS.between(wfh.getFromDate(), wfh.getToDate()) + 1;
+                responseMap.put("numberOfDays", numberOfDays);
+
+                // Fetch user details
+                UsersModel user = usersRepository.findById(wfh.getUserId()).orElse(null);
+                responseMap.put("userName", user != null ? user.getName() : "Unknown");
+
+                // Fetch batch details
+                String batchName = batchService.getBatchById(batchId)
+                        .map(BatchModel::getBatchName)
+                        .orElse("Unknown");
+                responseMap.put("batchId", batchId);
+                responseMap.put("batchName", batchName);
+
+                return responseMap;
+            }).collect(Collectors.toList());
+
+            return new ResponseEntity<>(responseList, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
 }
