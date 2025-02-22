@@ -108,7 +108,7 @@ public class AdminRegistrationController {
 
                 return new ResponseEntity<>(responseDto, HttpStatus.ACCEPTED);
             } else {
-                return new ResponseEntity<>("No details found", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>("No details found", HttpStatus.UNAUTHORIZED);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -165,7 +165,7 @@ public class AdminRegistrationController {
 
             Optional<AdminModel> adminOptional = adminRepository.findByEmail(forgotPasswordDto.getEmail());
             if (adminOptional.isEmpty()) {
-                return new ResponseEntity<>("Admin not found with the provided email", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("Admin not found with the provided email", HttpStatus.NO_CONTENT);
             }
 
 
