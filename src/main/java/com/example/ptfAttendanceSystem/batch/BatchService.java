@@ -47,7 +47,7 @@ public class BatchService {
     public List<BatchModel> getAllBatches() {
         List<BatchModel> batches = batchRepository.findAll();
         if (batches.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No batches found");
+            throw new ResponseStatusException(HttpStatus.NO_CONTENT, "No batches found");
         }
         return batches;
     }

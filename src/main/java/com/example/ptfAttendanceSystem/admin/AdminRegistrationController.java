@@ -378,7 +378,7 @@ public class AdminRegistrationController {
         LocalDate currentDate = LocalDate.now();
 
         if (batchId != null && !adminService.isBatchExists(batchId)) {
-            return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Batch not found", HttpStatus.NOT_FOUND);
         }
         List<Attendance> allAttendance = attendanceRepository.findByAttendanceDate(currentDate);
 
