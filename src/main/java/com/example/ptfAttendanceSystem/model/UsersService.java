@@ -290,8 +290,7 @@ public class UsersService {
             return new ResponseEntity<>("Scan In Successful (Late Request Approved for Regular Batch)", HttpStatus.OK);
         }
 
-        // Handle for Custom batch type
-        LocalTime allowedTime = batch.getStartTime().plusMinutes(10); // For custom batch, assume 10 minutes grace
+        LocalTime allowedTime = batch.getStartTime().plusMinutes(10);
         Attendance attendance = new Attendance();
         attendance.setUserId(userId);
         attendance.setUserName(userName);
@@ -320,26 +319,22 @@ public class UsersService {
     private ResponseEntity<?> handleScanOut(Long userId, InScanDto inScanDto, BatchTypeModel batchType) {
         LocalDate currentDate = LocalDate.now();
 
-        // Validate scan-out date
         if (!currentDate.equals(inScanDto.getPresentDate())) {
             return new ResponseEntity<>("Scan Out Date is not correct", HttpStatus.BAD_REQUEST);
         }
 
         Optional<Attendance> attendanceOptional = attendanceRepository.findByUserIdAndAttendanceDate(userId, currentDate);
 
-        // Ensure user has scanned in before scanning out
         if (!attendanceOptional.isPresent() || attendanceOptional.get().getScanInTime() == null) {
             return new ResponseEntity<>("User must scan in before scanning out", HttpStatus.BAD_REQUEST);
         }
 
         Attendance attendance = attendanceOptional.get();
 
-        // Check if scan-out has already been recorded
         if (attendance.getScanOutTime() != null) {
             return new ResponseEntity<>("User has already scanned out today", HttpStatus.BAD_REQUEST);
         }
 
-        // Save scan-out time
         attendance.setScanOutTime(inScanDto.getPresentTime());
         attendanceRepository.save(attendance);
 
@@ -485,7 +480,6 @@ public class UsersService {
 
         UsersModel user = optionalUser.get();
 
-        // Update user fields, only if the new values are not null
         if (updateUserDto.getName() != null && !updateUserDto.getName().isEmpty()) {
             user.setName(updateUserDto.getName());
         }
@@ -512,7 +506,6 @@ public class UsersService {
         UsersModel updatedUser = usersRepository.save(user);
         BatchModel batch = batchRepository.findById(updatedUser.getBatchId()).orElse(null);
 
-        // Build and return response
         UpdateUserResponseDto responseDto = new UpdateUserResponseDto();
         responseDto.setUserId(updatedUser.getUserId());
         responseDto.setName(updatedUser.getName());

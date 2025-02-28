@@ -273,7 +273,7 @@ public class AdminRegistrationController {
 
     @GetMapping("/leave-requests/today")
     public ResponseEntity<?> getLeaveRequestsForToday(
-            @RequestParam(required = false) Long batchId) {  // batchId is optional
+            @RequestParam(required = false) Long batchId) {
 
         if (batchId != null && !adminService.isBatchExists(batchId)) {
             return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
@@ -496,7 +496,7 @@ public class AdminRegistrationController {
                 return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
             }
 
-            Long batchId = userOpt.get().getBatchId(); // Retrieve batchId
+            Long batchId = userOpt.get().getBatchId();
             if (userAttendance.isEmpty()) {
                 return new ResponseEntity<>("No attendance records found for this user in the specified month", HttpStatus.NO_CONTENT);
             }
@@ -508,7 +508,7 @@ public class AdminRegistrationController {
                 responseMap.put("id", attendance.getId());
                 responseMap.put("userId", attendance.getUserId());
                 responseMap.put("userName", attendance.getUserName());
-                responseMap.put("batchId", batchId); // Include batchId
+                responseMap.put("batchId", batchId);
                 responseMap.put("batchName", attendance.getBatchName());
                 responseMap.put("attendanceDate", attendance.getAttendanceDate());
                 responseMap.put("scanInTime", attendance.getScanInTime());
@@ -861,17 +861,17 @@ public class AdminRegistrationController {
                 responseMap.put("toDate", wfh.getToDate());
                 responseMap.put("status", wfh.getStatus());
                 responseMap.put("reason", wfh.getReason());
-                responseMap.put("leaveType", wfh.getLeaveType()); // Keeping leaveType
+                responseMap.put("leaveType", wfh.getLeaveType());
 
-                // Calculate number of days
+
                 long numberOfDays = ChronoUnit.DAYS.between(wfh.getFromDate(), wfh.getToDate()) + 1;
                 responseMap.put("numberOfDays", numberOfDays);
 
-                // Fetch user details
+
                 UsersModel user = usersRepository.findById(wfh.getUserId()).orElse(null);
                 responseMap.put("userName", user != null ? user.getName() : "Unknown");
 
-                // Fetch batch details
+
                 String batchName = batchService.getBatchById(batchId)
                         .map(BatchModel::getBatchName)
                         .orElse("Unknown");

@@ -73,7 +73,7 @@ private BatchRepository batchRepository;
 
 
     public ResponseEntity<?> adminRegistration(AdminDto adminDto) {
-        Optional<AdminModel> existingAdmin = adminRepository.findByEmail(adminDto.getEmail()); // Use the instance variable
+        Optional<AdminModel> existingAdmin = adminRepository.findByEmail(adminDto.getEmail());
         if (existingAdmin.isPresent()) {
             return new ResponseEntity<>("User already registered", HttpStatus.CONFLICT);
         }
