@@ -888,6 +888,7 @@ public class AdminRegistrationController {
         }
     }
 
+
     @GetMapping("/attendance/user/{userId}/month/{month}/count")
     public ResponseEntity<?> getUserAttendanceCountForMonth(
             @PathVariable Long userId,
@@ -901,17 +902,25 @@ public class AdminRegistrationController {
                 return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
             }
 
-            if (batchId != null && !adminService.isBatchExists(batchId)) {
-                return new ResponseEntity<>("Batch not found", HttpStatus.BAD_REQUEST);
+            UsersModel user = userOpt.get();
+            Optional<BatchModel> batchOpt = batchService.getBatchById(batchId);
+            if (batchOpt.isEmpty()) {
+                return new ResponseEntity<>("Batch not found", HttpStatus.NOT_FOUND);
             }
-            if (!userOpt.get().getBatchId().equals(batchId)) {
+
+            BatchModel batch = batchOpt.get();
+
+            if (!user.getBatchId().equals(batchId)) {
                 return new ResponseEntity<>("User does not belong to the specified batch", HttpStatus.BAD_REQUEST);
             }
+
             int attendanceCount = attendanceRepository.countByUserIdAndAttendanceDateBetween(userId, startOfMonth, endOfMonth);
 
             Map<String, Object> response = new HashMap<>();
             response.put("userId", userId);
+            response.put("userName", user.getName());
             response.put("batchId", batchId);
+            response.put("batchName", batch.getBatchName());
             response.put("month", month);
             response.put("attendanceCount", attendanceCount);
 
@@ -920,6 +929,5 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Invalid month format. Please use yyyy-MM.", HttpStatus.BAD_REQUEST);
         }
     }
-
 
 }
