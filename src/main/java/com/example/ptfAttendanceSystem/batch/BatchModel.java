@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.time.LocalTime;
 
+
 @Entity
 @Table(name = "batch")
 @Data
@@ -27,10 +28,15 @@ public class BatchModel {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "batch_latitude")
+    private String batchLatitude;
+
+    @Column(name = "batch_longitude")
+    private String batchLongitude;
+
     @ManyToOne
     @JoinColumn(name = "batch_type_id", nullable = false)
     private BatchTypeModel batchType;
-
 
     public Long getId() {
         return id;
@@ -62,6 +68,22 @@ public class BatchModel {
 
     public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
+    }
+
+    public String getBatchLatitude() {
+        return batchLatitude;
+    }
+
+    public void setBatchLatitude(String batchLatitude) {
+        this.batchLatitude = batchLatitude;
+    }
+
+    public String getBatchLongitude() {
+        return batchLongitude;
+    }
+
+    public void setBatchLongitude(String batchLongitude) {
+        this.batchLongitude = batchLongitude;
     }
 
     public BatchTypeModel getBatchType() {

@@ -3,6 +3,8 @@ package com.example.ptfAttendanceSystem.admin;
 
 
 
+import com.example.ptfAttendanceSystem.InAndOut.InAndOutRepository;
+import com.example.ptfAttendanceSystem.InAndOut.InOut;
 import com.example.ptfAttendanceSystem.attendance.Attendance;
 import com.example.ptfAttendanceSystem.attendance.AttendanceRepository;
 import com.example.ptfAttendanceSystem.batch.BatchModel;
@@ -83,6 +85,9 @@ public class AdminRegistrationController {
 
     @Autowired
     private WfhService wfhService;
+
+    @Autowired
+    private InAndOutRepository inAndOutRepository;
 
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
@@ -745,12 +750,21 @@ public class AdminRegistrationController {
     @GetMapping("/LeaveWfh")
     public ResponseEntity<List<LeaveWfh>> getAllWfh() {
         List<LeaveWfh> wfhList = wfhService.getAllWfh();
+        if (wfhList.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(wfhList);
+        }
         return ResponseEntity.ok(wfhList);
     }
 
+//    @GetMapping("/LeaveWfh")
+//    public ResponseEntity<List<LeaveWfh>> getAllWfh() {
+//        List<LeaveWfh> wfhList = wfhService.getAllWfh();
+//        return ResponseEntity.ok(wfhList);
+//    }
 
 
-    @PostMapping("/LeaveWfh")
+
+    @PostMapping("LeaveWfh")
     public ResponseEntity<?> addWfh(@RequestBody LeaveWfh leaveWfh) {
         try {
             if (leaveWfh.getName() == null || leaveWfh.getName().trim().isEmpty()) {
@@ -771,7 +785,7 @@ public class AdminRegistrationController {
     }
 
 
-    @PutMapping("/LeaveWfh/{id}")
+    @PutMapping("LeaveWfh/{id}")
     public ResponseEntity<?> updateWfh(@PathVariable Integer id, @RequestBody LeaveWfh leaveWfh) {
         try {
             LeaveWfh updatedWfh = wfhService.updateWfh(id, leaveWfh);
@@ -782,7 +796,7 @@ public class AdminRegistrationController {
     }
 
 
-    @DeleteMapping("/LeaveWfh/{id}")
+    @DeleteMapping("LeaveWfh/{id}")
     public ResponseEntity<String> deleteWfh(@PathVariable Integer id) {
         try {
             wfhService.deleteWfh(id);
@@ -792,7 +806,7 @@ public class AdminRegistrationController {
         }
     }
 
-    @PostMapping("/approveWorkFromHomeRequest/{wfhRequestId}")
+    @PostMapping("approveWorkFromHomeRequest/{wfhRequestId}")
     public ResponseEntity<?> approveWorkFromHomeRequest(@PathVariable Long wfhRequestId) {
         try {
             return adminService.approveWorkFromHomeRequest(wfhRequestId);
@@ -802,7 +816,7 @@ public class AdminRegistrationController {
         }
     }
 
-    @PostMapping("/rejectWorkFromHomeRequest/{wfhRequestId}")
+    @PostMapping("rejectWorkFromHomeRequest/{wfhRequestId}")
     public ResponseEntity<?> rejectWorkFromHomeRequest(@PathVariable Long wfhRequestId) {
         try {
             return adminService.rejectWorkFromHomeRequest(wfhRequestId);
@@ -837,7 +851,7 @@ public class AdminRegistrationController {
 //    }
 
 
-    @GetMapping("/getWfhRequestsByStatusAndBatch")
+    @GetMapping("getWfhRequestsByStatusAndBatch")
     public ResponseEntity<?> getWfhRequestsByStatusAndBatch(
             @RequestParam WfhStatus status,
             @RequestParam Long batchId) {
@@ -889,7 +903,7 @@ public class AdminRegistrationController {
     }
 
 
-    @GetMapping("/attendance/user/{userId}/month/{month}/count")
+    @GetMapping("attendance/user/{userId}/month/{month}/count")
     public ResponseEntity<?> getUserAttendanceCountForMonth(
             @PathVariable Long userId,
             @PathVariable String month,
@@ -927,6 +941,62 @@ public class AdminRegistrationController {
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (DateTimeParseException e) {
             return new ResponseEntity<>("Invalid month format. Please use yyyy-MM.", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    @GetMapping("breakScanToday")
+    public ResponseEntity<?> getTodayBreakScans(@RequestParam Long userId) {
+        LocalDate currentDate = LocalDate.now();
+        List<InOut> breakRecords = inAndOutRepository.findByUserIdAndAttendanceDate(userId, currentDate);
+
+        if (breakRecords.isEmpty()) {
+            return new ResponseEntity<>("No break scans found for today", HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(breakRecords, HttpStatus.OK);
+    }
+
+
+    @GetMapping("inout/breakScanDate-range")
+    public ResponseEntity<?> getUserInOutBetweenDates(
+            @RequestParam Long userId,
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+
+            if (end.isBefore(start)) {
+                return new ResponseEntity<>("End date must be after start date.", HttpStatus.BAD_REQUEST);
+            }
+
+            List<InOut> userInOutRecords = inAndOutRepository.findByUserIdAndAttendanceDateBetween(userId, start, end);
+
+            if (userInOutRecords.isEmpty()) {
+                return new ResponseEntity<>("No In-Out records found for this user in the specified date range", HttpStatus.NO_CONTENT);
+            }
+
+            List<Map<String, Object>> response = userInOutRecords.stream().map(inOut -> {
+                Map<String, Object> inOutData = new HashMap<>();
+                inOutData.put("id", inOut.getId());
+                inOutData.put("userId", inOut.getUserId());
+                inOutData.put("userName", inOut.getUserName());
+                inOutData.put("batchId", inOut.getBatchId());
+                inOutData.put("batchName", inOut.getBatchName());
+                inOutData.put("attendanceDate", inOut.getAttendanceDate());
+                inOutData.put("scanInTime1", inOut.getScanInTime1());
+                inOutData.put("scanOutTime1", inOut.getScanOutTime1());
+                inOutData.put("scanInTime2", inOut.getScanInTime2());
+                inOutData.put("scanOutTime2", inOut.getScanOutTime2());
+                inOutData.put("scanInTime3", inOut.getScanInTime3());
+                inOutData.put("scanOutTime3", inOut.getScanOutTime3());
+                return inOutData;
+            }).collect(Collectors.toList());
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd format.", HttpStatus.BAD_REQUEST);
         }
     }
 
