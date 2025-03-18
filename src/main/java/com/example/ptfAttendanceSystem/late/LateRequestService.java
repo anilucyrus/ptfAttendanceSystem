@@ -60,7 +60,7 @@ public class LateRequestService {
         }
 
         BatchModel batch = batchOptional.get();
-        if (currentTime.isAfter(batch.getStartTime().plusMinutes(30))) {
+        if (currentTime.isAfter(batch.getStartTime().plusMinutes(01))) {
             return ResponseEntity.badRequest().body("Late request not allowed after " + batch.getStartTime().plusMinutes(30));
         }
 

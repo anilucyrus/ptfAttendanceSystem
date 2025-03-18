@@ -188,6 +188,8 @@ public class LeaveRequestService {
 
     public ResponseEntity<?> requestWorkFromHome(Long userId, LeaveRequestDto leaveRequestDto) {
         Optional<UsersModel> usersModelOptional = usersRepository.findById(userId);
+
+
         if (usersModelOptional.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid User ID.");
         }
@@ -198,21 +200,34 @@ public class LeaveRequestService {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid Batch ID.");
         }
 
+
         BatchModel batch = batchOptional.get();
         Optional<BatchTypeModel> batchTypeOptional = batchTypeRepository.findById(batch.getBatchType().getId());
+
+        LocalDate currentDate = LocalDate.now();
+        if (leaveRequestDto.getFromDate().isBefore(currentDate) || leaveRequestDto.getToDate().isBefore(currentDate)) {
+            return ResponseEntity.badRequest().body("Leave request cannot be made for past dates.");
+        }
+
+        if (leaveRequestDto.getFromDate().isAfter(leaveRequestDto.getToDate())) {
+            return ResponseEntity.badRequest().body("From date cannot be after To date.");
+        }
         if (batchTypeOptional.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Batch type not found.");
         }
 
+
+
         BatchTypeModel batchType = batchTypeOptional.get();
         String batchTypeName = batchType.getBatchType();
+
 
         if ("custom".equalsIgnoreCase(batchTypeName)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Work From Home is not allowed for custom batches.");
         }
 
         if ("regular".equalsIgnoreCase(batchTypeName)) {
-            // Check if user already has a work-from-home request for overlapping dates
+
             boolean exists = wfhRepo.existsByUserIdAndFromDateLessThanEqualAndToDateGreaterThanEqual(
                     userId, leaveRequestDto.getToDate(), leaveRequestDto.getFromDate()
             );
@@ -248,14 +263,7 @@ public class LeaveRequestService {
         return ResponseEntity.status(HttpStatus.OK).body("Work from home request deleted successfully.");
     }
 
-//    public ResponseEntity<?> deleteWfhRequest(Long requestId) {
-//        Optional<Wfh> wfhOptional = wfhRepo.findById(requestId);
-//        if (wfhOptional.isEmpty()) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Work From Home request not found.");
-//        }
-//        leaveRequestRepository.deleteById(requestId);
-//        return ResponseEntity.status(HttpStatus.OK).body("Work From Home request deleted successfully.");
-//    }
+
 
 
 

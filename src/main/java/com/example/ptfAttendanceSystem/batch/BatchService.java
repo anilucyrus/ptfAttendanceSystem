@@ -21,7 +21,7 @@ public class BatchService {
 
     public BatchModel addBatch(BatchModel batch, Long batchTypeId) {
         // Validate input fields
-        if (batch.getBatchName() == null || batch.getStartTime() == null || batch.getEndTime() == null) {
+        if (batch.getBatchName() == null || batch.getStartTime() == null || batch.getEndTime() == null || batch.getBatchLatitude() ==null || batch.getBatchLongitude() ==null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All fields are required.");
         }
 

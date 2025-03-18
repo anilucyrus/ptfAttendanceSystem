@@ -16,15 +16,17 @@ public class LoginResponseDto {
     private Long batchId;
     private String batchName;
     private String token;
+    private String permanentSessionId;
     private String message;
 
-    public LoginResponseDto(Long id, String email, String name, Long batchId, String batchName, String token, String message) {
+    public LoginResponseDto(Long id, String email, String name, Long batchId, String batchName, String token, String permanentSessionId, String message) {
         this.id = id;
         this.email = email;
         this.name = name;
         this.batchId = batchId;
         this.batchName = batchName;
         this.token = token;
+        this.permanentSessionId = permanentSessionId;
         this.message = message;
     }
 
@@ -74,6 +76,14 @@ public class LoginResponseDto {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getPermanentSessionId() {
+        return permanentSessionId;
+    }
+
+    public void setPermanentSessionId(String permanentSessionId) {
+        this.permanentSessionId = permanentSessionId;
     }
 
     public String getMessage() {

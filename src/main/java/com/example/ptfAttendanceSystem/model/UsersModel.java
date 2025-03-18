@@ -10,26 +10,16 @@ import lombok.Data;
 @Data
 public class UsersModel {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
-
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @Column(name = "password", nullable = false)
-    private String password;
-
-    @Column(name = "email", nullable = false, unique = true)
     private String email;
-
-    @Column(name = "batch_id", nullable = false)
+    private String name;
+    private String password;
     private Long batchId;
-
-    @Column(name = "token")
     private String token;
-
-    @Column(name = "phone_number", nullable = false)
+    private String permanentSessionId;
     private String phoneNumber;
 
     public Long getUserId() {
@@ -38,6 +28,14 @@ public class UsersModel {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getName() {
@@ -56,14 +54,6 @@ public class UsersModel {
         this.password = password;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public Long getBatchId() {
         return batchId;
     }
@@ -78,6 +68,14 @@ public class UsersModel {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getPermanentSessionId() {
+        return permanentSessionId;
+    }
+
+    public void setPermanentSessionId(String permanentSessionId) {
+        this.permanentSessionId = permanentSessionId;
     }
 
     public String getPhoneNumber() {

@@ -94,7 +94,11 @@ public class UserRegistrationController {
             return response;
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("success", false);
+            errorResponse.put("message", "Something went wrong");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -104,7 +108,11 @@ public class UserRegistrationController {
             return usersService.scanInAndOut(userId, inScanDto);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
+            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("success", false);
+            errorResponse.put("message", "Something went wrong");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+//            return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -345,6 +353,21 @@ public class UserRegistrationController {
             e.printStackTrace();
             return new ResponseEntity<>("Something went wrong", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+//    @PostMapping("/users/break/scan")
+//    public ResponseEntity<?> breakScan(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
+//        return usersService.breakScanInAndOut(userId, inScanDto);
+//    }
+
+    @PostMapping("/users/break/scanIn")
+    public ResponseEntity<?> breakScanIn(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
+        return usersService.breakScanIn(userId, inScanDto);
+    }
+
+    @PostMapping("/users/break/scanOut")
+    public ResponseEntity<?> breakScanOut(@RequestParam Long userId, @RequestBody InScanDto inScanDto) {
+        return usersService.breakScanOut(userId, inScanDto);
     }
 
 
