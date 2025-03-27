@@ -9,7 +9,6 @@ import lombok.Data;
 
 import java.time.LocalTime;
 
-
 @Entity
 @Table(name = "batch")
 @Data
@@ -37,6 +36,7 @@ public class BatchModel {
     @ManyToOne
     @JoinColumn(name = "batch_type_id", nullable = false)
     private BatchTypeModel batchType;
+
 
     public Long getId() {
         return id;

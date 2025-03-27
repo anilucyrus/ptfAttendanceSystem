@@ -33,9 +33,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
-
+import java.util.*;
 @Service
 
 public class UsersService {
@@ -178,6 +180,7 @@ public class UsersService {
             // Generate a new session token for this login
             userModel.setToken(UUID.randomUUID().toString());
             usersRepository.save(userModel);
+
 
             BatchModel batch = batchRepository.findById(userModel.getBatchId()).orElse(null);
 
@@ -576,6 +579,7 @@ public class UsersService {
         String typeData = inScanDto.getType();
 
         try {
+
             if ("in".equalsIgnoreCase(typeData)) {
                 if ("Custom".equalsIgnoreCase(batchType.getBatchType())) {
                     return handleCustomBatchScanIn(userId, usersModel.getName(), batch, batchType, inScanDto);
@@ -871,6 +875,7 @@ public class UsersService {
 //        return new ResponseEntity<>("Scan Out Successful", HttpStatus.OK);
     }
 
+
     public List<Attendance> getAllAttendanceByDate(LocalDate date) {
         return attendanceRepository.findByAttendanceDate(date);
     }
@@ -998,7 +1003,7 @@ public class UsersService {
 
 
     public ResponseEntity<?> updateUser(Long userId, UpdateUserDto updateUserDto) {
-
+        // Check if user exists
         Optional<UsersModel> optionalUser = usersRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
@@ -1019,7 +1024,7 @@ public class UsersService {
             user.setPhoneNumber(updateUserDto.getPhoneNumber());
         }
 
-
+        // Handle batch update
         if (updateUserDto.getBatchName() != null && !updateUserDto.getBatchName().isEmpty()) {
             Optional<BatchModel> batch = batchRepository.findByBatchName(updateUserDto.getBatchName());
             if (batch.isPresent()) {
