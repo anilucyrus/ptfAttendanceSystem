@@ -674,12 +674,22 @@ public class AdminRegistrationController {
         }
     }
 
-    @PutMapping(path = "/updateBatch")
-    public ResponseEntity<?> updateBatch(@RequestParam Long id, @RequestBody BatchModel batch, @RequestParam Long batchTypeId) {
+//    @PutMapping(path = "/updateBatch")
+//    public ResponseEntity<?> updateBatch(@RequestParam Long id, @RequestBody BatchModel batch, @RequestParam Long batchTypeId) {
+//        try {
+//            return new ResponseEntity<>(batchService.updateBatch(id, batch, batchTypeId), HttpStatus.OK);
+//        } catch (ResponseStatusException ex) {
+//            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+//        }
+//    }
+
+    @PutMapping(path = "/updateBatch/{batchId}")
+    public ResponseEntity<?> updateBatch(@PathVariable Long batchId, @RequestBody BatchModel updatedBatch) {
         try {
-            return new ResponseEntity<>(batchService.updateBatch(id, batch, batchTypeId), HttpStatus.OK);
+            BatchModel batch = batchService.updateBatch(batchId, updatedBatch);
+            return ResponseEntity.ok(batch);
         } catch (ResponseStatusException ex) {
-            return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getReason());
         }
     }
 

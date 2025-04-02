@@ -53,16 +53,25 @@ public class BatchService {
         return batches;
     }
 
+//
+//
 //    public BatchModel updateBatch(Long id, BatchModel updatedBatch, Long batchTypeId) {
 //        return batchRepository.findById(id)
 //                .map(existingBatch -> {
-//                    existingBatch.setBatchName(updatedBatch.getBatchName());
-//                    existingBatch.setStartTime(updatedBatch.getStartTime());
-//                    existingBatch.setEndTime(updatedBatch.getEndTime());
-//
-//                    BatchTypeModel batchType = batchTypeRepository.findById(batchTypeId)
-//                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch type not found"));
-//                    existingBatch.setBatchType(batchType);
+//                    if (updatedBatch.getBatchName() != null) {
+//                        existingBatch.setBatchName(updatedBatch.getBatchName());
+//                    }
+//                    if (updatedBatch.getStartTime() != null) {
+//                        existingBatch.setStartTime(updatedBatch.getStartTime());
+//                    }
+//                    if (updatedBatch.getEndTime() != null) {
+//                        existingBatch.setEndTime(updatedBatch.getEndTime());
+//                    }
+//                    if (batchTypeId != null) {
+//                        BatchTypeModel batchType = batchTypeRepository.findById(batchTypeId)
+//                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch type not found"));
+//                        existingBatch.setBatchType(batchType);
+//                    }
 //
 //                    return batchRepository.save(existingBatch);
 //                })
@@ -70,29 +79,25 @@ public class BatchService {
 //    }
 
 
-    public BatchModel updateBatch(Long id, BatchModel updatedBatch, Long batchTypeId) {
-        return batchRepository.findById(id)
-                .map(existingBatch -> {
-                    if (updatedBatch.getBatchName() != null) {
-                        existingBatch.setBatchName(updatedBatch.getBatchName());
-                    }
-                    if (updatedBatch.getStartTime() != null) {
-                        existingBatch.setStartTime(updatedBatch.getStartTime());
-                    }
-                    if (updatedBatch.getEndTime() != null) {
-                        existingBatch.setEndTime(updatedBatch.getEndTime());
-                    }
-                    if (batchTypeId != null) {
-                        BatchTypeModel batchType = batchTypeRepository.findById(batchTypeId)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch type not found"));
-                        existingBatch.setBatchType(batchType);
-                    }
 
-                    return batchRepository.save(existingBatch);
-                })
+    public BatchModel updateBatch(Long batchId, BatchModel updatedBatch) {
+        BatchModel existingBatch = batchRepository.findById(batchId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch not found"));
-    }
 
+        existingBatch.setBatchName(updatedBatch.getBatchName());
+        existingBatch.setStartTime(updatedBatch.getStartTime());
+        existingBatch.setEndTime(updatedBatch.getEndTime());
+        existingBatch.setBatchLatitude(updatedBatch.getBatchLatitude());
+        existingBatch.setBatchLongitude(updatedBatch.getBatchLongitude());
+
+        if (updatedBatch.getBatchType() != null && updatedBatch.getBatchType().getId() != null) {
+            BatchTypeModel batchType = batchTypeRepository.findById(updatedBatch.getBatchType().getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch type not found"));
+            existingBatch.setBatchType(batchType);
+        }
+
+        return batchRepository.save(existingBatch);
+    }
 
     public String getBatchNameById(Long batchId) {
         return batchRepository.findById(batchId)
