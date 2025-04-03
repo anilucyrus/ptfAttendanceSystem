@@ -461,4 +461,45 @@ private BatchRepository batchRepository;
         return new ResponseEntity<>("Work From Home request rejected successfully", HttpStatus.OK);
     }
 
+
+
+    private Map<String, String> otpStorage = new HashMap<>();
+
+    public ResponseEntity<?> sendOtpForPasswordReset(String email) {
+
+
+        Optional<AdminModel> adminOpt = adminRepository.findByEmail(email);
+        if (adminOpt.isPresent()) {
+            String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+            otpStorage.put(email, otp);
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject("Password Reset OTP");
+            message.setText("Your OTP for password reset is: " + otp);
+            mailSender.send(message);
+
+            return new ResponseEntity<>("OTP sent successfully", HttpStatus.OK);
+        }
+        return new ResponseEntity<>("Email not found", HttpStatus.NOT_FOUND);
+    }
+
+    public ResponseEntity<?> verifyOtpAndResetPassword(ResetPasswordDto resetPasswordDto) {
+        String storedOtp = otpStorage.get(resetPasswordDto.getEmail());
+        if (storedOtp != null && storedOtp.equals(resetPasswordDto.getOtp())) {
+            Optional<AdminModel> adminOpt = adminRepository.findByEmail(resetPasswordDto.getEmail());
+            if (adminOpt.isPresent()) {
+                AdminModel admin = adminOpt.get();
+                admin.setPassword(resetPasswordDto.getNewPassword());
+                adminRepository.save(admin);
+                otpStorage.remove(resetPasswordDto.getEmail());
+                return new ResponseEntity<>("Password reset successfully", HttpStatus.OK);
+            }
+
+        }
+
+        return new ResponseEntity<>("Invalid OTP", HttpStatus.UNAUTHORIZED);
+    }
+
+
 }

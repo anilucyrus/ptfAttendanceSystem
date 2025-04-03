@@ -11,13 +11,15 @@ public class ALoginResponseDto {
     private String email;
     private String name;
     private String token;
+    private String phoneNumber;
     private String message;
 
-    public ALoginResponseDto(Long id, String email, String name, String token, String message) {
+    public ALoginResponseDto(Long id, String email, String name, String token, String phoneNumber, String message) {
         this.id = id;
         this.email = email;
         this.name = name;
         this.token = token;
+        this.phoneNumber = phoneNumber;
         this.message = message;
     }
 
@@ -51,6 +53,14 @@ public class ALoginResponseDto {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     public String getMessage() {

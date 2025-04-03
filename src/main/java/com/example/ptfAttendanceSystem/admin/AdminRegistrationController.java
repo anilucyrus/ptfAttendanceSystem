@@ -89,6 +89,7 @@ public class AdminRegistrationController {
     @Autowired
     private InAndOutRepository inAndOutRepository;
 
+
     @PostMapping(path = "/reg")
     public ResponseEntity<?> registration(@RequestBody AdminDto adminDto) {
         try {
@@ -115,6 +116,7 @@ public class AdminRegistrationController {
                         adminModel.getId(),
                         adminModel.getEmail(),
                         adminModel.getName(),
+                        adminModel.getPhoneNumber(),
                         adminModel.getToken(),
 
                         "Login Successfully"
@@ -1009,5 +1011,17 @@ public class AdminRegistrationController {
             return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd format.", HttpStatus.BAD_REQUEST);
         }
     }
+
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam String email) {
+        return adminService.sendOtpForPasswordReset(email);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordDto resetPasswordDto) {
+        return adminService.verifyOtpAndResetPassword(resetPasswordDto);
+    }
+
 
 }
